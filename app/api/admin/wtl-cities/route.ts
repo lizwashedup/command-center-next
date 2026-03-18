@@ -10,29 +10,30 @@ export async function GET() {
 
   const admin = createServiceClient(supabaseUrl, serviceKey);
 
-  const { data: profiles, error } = await admin
-    .from("profiles")
-    .select("id, city, created_at")
-    .eq("onboarding_status", "waitlisted")
+  const { data: rows, error } = await admin
+    .from("city_requests")
+    .select("id, city_name, user_email, created_at")
     .order("created_at", { ascending: false });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Group by city server-side
-  const cityMap: Record<string, number> = {};
-  for (const p of profiles ?? []) {
-    const key = (p.city || "Unknown").trim();
-    cityMap[key] = (cityMap[key] || 0) + 1;
+  // Group by normalized city name (case-insensitive)
+  const cityMap: Record<string, { city: string; count: number }> = {};
+  for (const r of rows ?? []) {
+    const key = r.city_name.trim().toLowerCase();
+    if (!cityMap[key]) {
+      cityMap[key] = { city: r.city_name.trim(), count: 0 };
+    }
+    cityMap[key].count++;
   }
 
-  const cities = Object.entries(cityMap)
-    .map(([city, count]) => ({ city, count }))
-    .sort((a, b) => b.count - a.count);
+  const cities = Object.values(cityMap).sort((a, b) => b.count - a.count);
 
   return NextResponse.json({
     cities,
-    total: (profiles ?? []).length,
+    total: (rows ?? []).length,
+    entries: rows ?? [],
   });
 }

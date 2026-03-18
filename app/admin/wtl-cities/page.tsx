@@ -7,9 +7,17 @@ type WtlCity = {
   count: number;
 };
 
+type WtlEntry = {
+  id: string;
+  city_name: string;
+  user_email: string | null;
+  created_at: string;
+};
+
 type WtlData = {
   cities: WtlCity[];
   total: number;
+  entries: WtlEntry[];
 };
 
 export default function WtlCitiesPage() {
@@ -20,7 +28,7 @@ export default function WtlCitiesPage() {
     fetch("/api/admin/wtl-cities")
       .then((r) => r.json())
       .then((d) => {
-        setData({ cities: d.cities ?? [], total: d.total ?? 0 });
+        setData({ cities: d.cities ?? [], total: d.total ?? 0, entries: d.entries ?? [] });
         setLoading(false);
       });
   }, []);
@@ -38,7 +46,7 @@ export default function WtlCitiesPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-[#1E1E1E]">WTL Cities</h1>
         <span className="text-sm text-[#999]">
-          <span className="font-semibold text-[#D97746]">{data.total}</span> people across{" "}
+          <span className="font-semibold text-[#D97746]">{data.total}</span> signups across{" "}
           <span className="font-semibold text-[#1E1E1E]">{data.cities.length}</span>{" "}
           {data.cities.length === 1 ? "city" : "cities"}
         </span>
@@ -60,7 +68,7 @@ export default function WtlCitiesPage() {
         ))}
       </div>
 
-      {/* Top city callout */}
+      {/* Top city bar chart */}
       {data.cities.length > 0 && (
         <div className="bg-white rounded-2xl border border-[#E8E3DC] p-6">
           <h2 className="text-base font-bold text-[#1E1E1E] mb-4">📍 Top Interest</h2>
@@ -74,7 +82,8 @@ export default function WtlCitiesPage() {
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm font-medium text-[#1E1E1E]">{c.city}</span>
                       <span className="text-sm font-bold text-[#D97746]">
-                        {c.count} <span className="text-xs text-[#999] font-normal">({pct}%)</span>
+                        {c.count}{" "}
+                        <span className="text-xs text-[#999] font-normal">({pct}%)</span>
                       </span>
                     </div>
                     <div className="h-1.5 bg-[#F0EBE3] rounded-full overflow-hidden">
@@ -90,6 +99,37 @@ export default function WtlCitiesPage() {
           </div>
         </div>
       )}
+
+      {/* Full signups list */}
+      <div className="bg-white rounded-2xl border border-[#E8E3DC] p-6">
+        <h2 className="text-base font-bold text-[#1E1E1E] mb-4">All Signups</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[#E8E3DC] text-left">
+                <th className="py-2 pr-4 text-[#999] font-medium text-xs">City</th>
+                <th className="py-2 pr-4 text-[#999] font-medium text-xs">Email</th>
+                <th className="py-2 text-[#999] font-medium text-xs">Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.entries.map((e) => (
+                <tr key={e.id} className="border-b border-[#F0EBE3] hover:bg-[#FBF9F6]">
+                  <td className="py-2 pr-4 font-medium text-[#1E1E1E]">{e.city_name}</td>
+                  <td className="py-2 pr-4 text-[#666]">{e.user_email || "—"}</td>
+                  <td className="py-2 text-[#999] text-xs">
+                    {new Date(e.created_at).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
