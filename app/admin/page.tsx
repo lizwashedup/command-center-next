@@ -542,33 +542,42 @@ export default function AdminDashboard() {
         title="Marketplace Health"
         subtitle="The flywheel: users join plans → attend IRL → become creators"
       >
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
+        {/* Live plans hero */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+          <StatCard
+            label="Live Plans Right Now"
+            value={stats.activePlans}
+            sub="Forming, active, or full — open to joiners"
+            highlight="orange"
+          />
+          <StatCard
+            label="Total Published"
+            value={stats.publishedPlans}
+            sub="All time, excl. drafts"
+          />
           <StatCard
             label="Unique Creators"
             value={stats.uniqueCreators}
             sub={`${stats.activatedUsers > 0 ? Math.round((stats.uniqueCreators / stats.activatedUsers) * 100) : 0}% of activated users`}
-            highlight="orange"
+            highlight="blue"
           />
           <StatCard
             label="Unique Joiners"
             value={stats.uniqueJoiners}
             sub={`${stats.activatedUsers > 0 ? Math.round((stats.uniqueJoiners / stats.activatedUsers) * 100) : 0}% of activated users`}
-            highlight="blue"
           />
+        </div>
+
+        <Divider label="Plan outcomes" />
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <StatCard label="Completed" value={stats.completedPlans} highlight="green" />
           <StatCard
             label="Plan Completion Rate"
             value={`${stats.planCompletionRate}%`}
             sub={`${stats.completedPlans} of ${stats.completedPlans + stats.cancelledPlans} finished plans`}
             highlight="green"
           />
-        </div>
-
-        <Divider label="Plan breakdown" />
-
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <StatCard label="Completed" value={stats.completedPlans} highlight="green" />
-          <StatCard label="Active Now" value={stats.activePlans} sub="Currently live" />
-          <StatCard label="Total Published" value={stats.publishedPlans} sub="Excl. drafts" />
           <StatCard label="Cancelled" value={stats.cancelledPlans} />
           <StatCard label="Drafts" value={stats.totalPlans - stats.publishedPlans} sub="Created, not posted" />
         </div>
