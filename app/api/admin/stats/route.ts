@@ -364,31 +364,17 @@ export async function GET() {
         ) / 10
       : 0;
 
-  // MoM MAU retention via user_sessions
-  const prevMonthStartStr = toDateStrPT(twoMonthsAgo);
-  const prevMonthEndStr = toDateStrPT(monthAgo);
-  const currMonthStartStr = toDateStrPT(monthAgo);
-
-  const prevMonthSessionUsers = new Set(
-    userSessionsData
-      .filter((s: { user_id: string; session_date: string }) => {
-        const d = s.session_date.slice(0, 10);
-        return d >= prevMonthStartStr && d < prevMonthEndStr && activatedIds.has(s.user_id);
-      })
-      .map((s: { user_id: string }) => s.user_id)
-  );
-  const currMonthSessionUsers = new Set(
-    userSessionsData
-      .filter((s: { user_id: string; session_date: string }) => {
-        const d = s.session_date.slice(0, 10);
-        return d >= currMonthStartStr && activatedIds.has(s.user_id);
-      })
-      .map((s: { user_id: string }) => s.user_id)
-  );
-  const retainedMauCount = Array.from(prevMonthSessionUsers).filter((id) =>
-    currMonthSessionUsers.has(id as string)
+  // Month-1 Retention: of activated users who signed up 28–56 days ago,
+  // what % are still active in the current 28d window?
+  // Uses last_active_at which is reliable (updated on every app open).
+  const newCohortProfiles = activatedProfiles.filter((p) => {
+    const c = new Date(p.created_at);
+    return c >= twoMonthsAgo && c < monthAgo;
+  });
+  const prevMonthMauCount = newCohortProfiles.length; // "last month's new users"
+  const retainedMauCount = newCohortProfiles.filter(
+    (p) => p.last_active_at && new Date(p.last_active_at) >= monthAgo
   ).length;
-  const prevMonthMauCount = prevMonthSessionUsers.size;
   const mauRetentionPct =
     prevMonthMauCount > 0 ? Math.round((retainedMauCount / prevMonthMauCount) * 100) : 0;
 
