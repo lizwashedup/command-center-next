@@ -377,20 +377,24 @@ export default function AdminDashboard() {
         <div className="bg-[#FBF9F6] rounded-xl p-4 border border-[#E8E3DC]">
           <p className="text-xs font-medium text-[#999] uppercase tracking-wide mb-3">Signups — Last 7 Days</p>
           <div className="flex items-end justify-between gap-2 h-24">
-            {stats.signups7d.map((day) => (
-              <div key={day.date} className="flex-1 flex flex-col items-center gap-1">
-                <span className="text-xs font-bold text-[#D97746]">{day.count}</span>
-                <div
-                  className="w-full bg-[#D97746] rounded-t-md transition-all"
-                  style={{ height: `${Math.max((day.count / signupMax) * 70, 4)}px` }}
-                />
-                <span className="text-[10px] text-[#bbb]">
-                  {new Date(day.date + "T12:00:00").toLocaleDateString("en-US", {
-                    weekday: "short",
-                  })}
-                </span>
-              </div>
-            ))}
+            {stats.signups7d.map((day, i) => {
+              const dateStr = day.date.slice(0, 10);
+              const d = new Date(dateStr + "T12:00:00Z");
+              const isToday = i === stats.signups7d.length - 1;
+              const label = isToday
+                ? "Today"
+                : d.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" });
+              return (
+                <div key={day.date} className="flex-1 flex flex-col items-center gap-1">
+                  <span className="text-xs font-bold text-[#D97746]">{day.count}</span>
+                  <div
+                    className="w-full bg-[#D97746] rounded-t-md transition-all"
+                    style={{ height: `${Math.max((day.count / signupMax) * 70, 4)}px` }}
+                  />
+                  <span className="text-[10px] text-[#bbb]">{label}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
       </Section>
