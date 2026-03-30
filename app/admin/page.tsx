@@ -18,6 +18,8 @@ type Stats = {
   plansNoJoins: number;
   cancelledPlans: number;
   activePlans: number;
+  upcomingPlans: number;
+  stalePlans: number;
   onboardingComplete: number;
   incompleteOnboarding: number;
   hasPhoto: number;
@@ -545,9 +547,9 @@ export default function AdminDashboard() {
         {/* Live plans hero */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
           <StatCard
-            label="Live Plans Right Now"
-            value={stats.activePlans}
-            sub="Forming, active, or full — open to joiners"
+            label="Upcoming Plans"
+            value={stats.upcomingPlans}
+            sub={`${stats.stalePlans} past their date but not closed`}
             highlight="orange"
           />
           <StatCard

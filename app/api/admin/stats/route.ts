@@ -146,8 +146,15 @@ export async function GET() {
   // ── Plan stats ───────────────────────────────────────────────────────────
   const liveStatuses = ["forming", "active", "full"];
   const publishedEvents = events.filter((e) => e.status !== "draft");
-  const activePlans = events.filter((e) =>
-    liveStatuses.includes(e.status)
+  const liveEvents = events.filter((e) => liveStatuses.includes(e.status));
+  const activePlans = liveEvents.length;
+  // Plans that are "live" but start_time has already passed — creators forgot to close them
+  const stalePlans = liveEvents.filter(
+    (e) => e.start_time && new Date(e.start_time) < now
+  ).length;
+  // Truly upcoming plans (start_time in the future or no date set)
+  const upcomingPlans = liveEvents.filter(
+    (e) => !e.start_time || new Date(e.start_time) >= now
   ).length;
   const plansWith2Plus = publishedEvents.filter((e) => e.member_count >= 2).length;
   const plansWith3Plus = publishedEvents.filter((e) => e.member_count >= 3).length;
@@ -479,6 +486,8 @@ export async function GET() {
     plansNoJoins,
     cancelledPlans,
     activePlans,
+    upcomingPlans,
+    stalePlans,
     onboardingComplete,
     incompleteOnboarding,
     hasPhoto,
