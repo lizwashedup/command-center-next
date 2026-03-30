@@ -34,11 +34,20 @@ type Stats = {
   wau: number;
   mau: number;
   wauMauRatio: number;
+  dauMauRatio: number;
+  momGrowthPct: number;
+  prevMonthCount: number;
   returnedEver: number;
   returned7d: number;
   retentionBase: number;
   returned30d: number;
   d30RetentionBase: number;
+  d1CohortBase: number;
+  d1CohortReturned: number;
+  d7CohortBase: number;
+  d7CohortReturned: number;
+  d30CohortBase: number;
+  d30CohortReturned: number;
   weeklyData: WeekRow[];
   referralCounts: { source: string; count: number }[];
   signups7d: { date: string; count: number }[];
@@ -182,6 +191,15 @@ export default function AdminDashboard() {
   const retention30dPct = stats.d30RetentionBase > 0
     ? Math.round((stats.returned30d / stats.d30RetentionBase) * 100)
     : 0;
+  const d1CohortPct = stats.d1CohortBase > 0
+    ? Math.round((stats.d1CohortReturned / stats.d1CohortBase) * 100)
+    : 0;
+  const d7CohortPct = stats.d7CohortBase > 0
+    ? Math.round((stats.d7CohortReturned / stats.d7CohortBase) * 100)
+    : 0;
+  const d30CohortPct = stats.d30CohortBase > 0
+    ? Math.round((stats.d30CohortReturned / stats.d30CohortBase) * 100)
+    : 0;
   const returnedEverPct = stats.activatedUsers > 0
     ? Math.round((stats.returnedEver / stats.activatedUsers) * 100)
     : 0;
@@ -227,11 +245,16 @@ export default function AdminDashboard() {
             sub={`${stats.newThisWeek} new vs ${stats.lastWeekNew} last wk`}
             color="#1E1E1E"
           />
-          <StatCard label="New (30 days)" value={stats.newLast30d} color="#D97746" />
           <StatCard
-            label="7-Day Retention"
-            value={`${retention7dPct}%`}
-            sub={`${stats.returned7d}/${stats.retentionBase} activated eligible`}
+            label="New (30 days)"
+            value={stats.newLast30d}
+            sub={`MoM ${stats.momGrowthPct >= 0 ? "+" : ""}${stats.momGrowthPct}% vs prior 28d`}
+            color="#D97746"
+          />
+          <StatCard
+            label="D7 Retention (cohort)"
+            value={`${d7CohortPct}%`}
+            sub={`${stats.d7CohortReturned}/${stats.d7CohortBase} back on day 6-8`}
           />
           <StatCard
             label="Activation Rate"
@@ -239,9 +262,9 @@ export default function AdminDashboard() {
             sub="Completed onboarding"
           />
           <StatCard
-            label="WAU / MAU"
-            value={`${stats.wauMauRatio}%`}
-            sub={`${stats.wau} weekly / ${stats.mau} monthly`}
+            label="DAU / MAU"
+            value={`${stats.dauMauRatio}%`}
+            sub={`${stats.dau} daily / ${stats.mau} monthly`}
           />
         </div>
       </Section>
@@ -264,14 +287,29 @@ export default function AdminDashboard() {
             color="#E65100"
           />
           <StatCard
-            label="D7 Retention"
-            value={`${retention7dPct}%`}
-            sub={`${stats.returned7d}/${stats.retentionBase} eligible`}
+            label="D1 Retention (cohort)"
+            value={`${d1CohortPct}%`}
+            sub={`${stats.d1CohortReturned}/${stats.d1CohortBase} back on day 1`}
           />
           <StatCard
-            label="D30 Retention"
+            label="D7 Retention (cohort)"
+            value={`${d7CohortPct}%`}
+            sub={`${stats.d7CohortReturned}/${stats.d7CohortBase} back day 6-8`}
+          />
+          <StatCard
+            label="D30 Retention (cohort)"
+            value={`${d30CohortPct}%`}
+            sub={`${stats.d30CohortReturned}/${stats.d30CohortBase} back day 29-31`}
+          />
+          <StatCard
+            label="D7 (cumulative)"
+            value={`${retention7dPct}%`}
+            sub={`${stats.returned7d}/${stats.retentionBase} ever returned after day 7`}
+          />
+          <StatCard
+            label="D30 (cumulative)"
             value={`${retention30dPct}%`}
-            sub={`${stats.returned30d}/${stats.d30RetentionBase} eligible`}
+            sub={`${stats.returned30d}/${stats.d30RetentionBase} ever returned after day 30`}
           />
           <StatCard
             label="Returned (Ever)"
@@ -282,7 +320,8 @@ export default function AdminDashboard() {
           <StatCard label="DAU" value={stats.dau} sub="Last 24h · activated" />
           <StatCard label="WAU" value={stats.wau} sub="Last 7d · activated" />
           <StatCard label="MAU" value={stats.mau} sub="Last 28d · activated" />
-          <StatCard label="Stickiness" value={`${stats.wauMauRatio}%`} sub="WAU / MAU · activated" />
+          <StatCard label="DAU/MAU Stickiness" value={`${stats.dauMauRatio}%`} sub="DAU / MAU · activated" />
+          <StatCard label="WAU/MAU" value={`${stats.wauMauRatio}%`} sub="WAU / MAU · activated" />
         </div>
         <div className="grid grid-cols-2 gap-3 mt-3">
           <StatCard label="Has Photo" value={stats.hasPhoto} />
@@ -292,9 +331,6 @@ export default function AdminDashboard() {
 
       {/* ── Marketplace Health ─────────────────────────────────────────── */}
       <Section icon="🛒" title="Marketplace Health">
-        <div className="mb-1 px-3 py-1.5 rounded-lg bg-[#F5F3F0] border border-[#E8E3DC] text-xs text-[#666]">
-          All metrics on clean data — test plans removed.
-        </div>
         <div className="mb-4 px-3 py-2 rounded-lg bg-[#FDF5F0] border border-[#EDCFBF] text-xs text-[#8B4A1A]">
           📊 The flywheel: users join plans → attend IRL → become creators
         </div>
@@ -314,7 +350,7 @@ export default function AdminDashboard() {
           <StatCard
             label="Plan Completion Rate"
             value={`${stats.planCompletionRate}%`}
-            sub={`${stats.completedPlans} of ${stats.publishedPlans} total plans actually happened`}
+            sub={`${stats.completedPlans} completed of ${stats.completedPlans + stats.cancelledPlans} finished plans`}
             color="#2E7D32"
           />
           <StatCard
@@ -338,18 +374,19 @@ export default function AdminDashboard() {
             sub="Currently live"
           />
           <StatCard
-            label="Total Plans Ever"
-            value={stats.totalPlans}
+            label="Total Published Plans"
+            value={stats.publishedPlans}
+            sub="Excludes drafts"
           />
           <StatCard
             label="Cancelled"
             value={stats.cancelledPlans}
-            color={stats.totalPlans > 0 && stats.cancelledPlans / stats.totalPlans > 0.2 ? "#C62828" : undefined}
+            color={stats.publishedPlans > 0 && stats.cancelledPlans / stats.publishedPlans > 0.2 ? "#C62828" : undefined}
           />
           <StatCard
             label="Drafts"
             value={stats.totalPlans - stats.publishedPlans}
-            sub="Posted but not published"
+            sub="Created but not posted"
           />
         </div>
       </Section>
@@ -375,7 +412,7 @@ export default function AdminDashboard() {
       </Section>
 
       <Section icon="📋" title="Plan Health">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatCard
             label="Plans with 2+"
             value={stats.plansWith2Plus}
@@ -390,7 +427,6 @@ export default function AdminDashboard() {
             sub="Creator only"
             color="#E65100"
           />
-          <StatCard label="Cancelled" value={stats.cancelledPlans} color="#C62828" />
         </div>
       </Section>
 

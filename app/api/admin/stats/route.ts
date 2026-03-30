@@ -28,6 +28,11 @@ export async function GET() {
   const monthAgo = new Date(now.getTime() - 28 * 24 * 60 * 60 * 1000);
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const oneDayAgoMs = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000);
+  const thirtyOneDaysAgo = new Date(now.getTime() - 31 * 24 * 60 * 60 * 1000);
+  const thirtySevenDaysAgo = new Date(now.getTime() - 37 * 24 * 60 * 60 * 1000);
+  const twoMonthsAgo = new Date(now.getTime() - 56 * 24 * 60 * 60 * 1000);
+  const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async function fetchAll(table: string, columns: string): Promise<any[]> {
@@ -71,7 +76,7 @@ export async function GET() {
     console.error("[admin-stats] weekly_snapshots error:", snapError.message);
   }
 
-  const [profiles, events, allMessages, eventMembers] = await Promise.all([
+  const [profiles, events, allMessages, eventMembers, userSessionsData] = await Promise.all([
     fetchAll(
       "profiles",
       "id, created_at, onboarding_status, profile_photo_url, bio, gender, first_name_display, referral_source, phone_number, phone_verified, last_active_at, first_return_at"
@@ -79,6 +84,7 @@ export async function GET() {
     fetchAll("events", "id, created_at, member_count, status, start_time, creator_user_id"),
     fetchAll("messages", "id, event_id, user_id, created_at, message_type"),
     fetchAll("event_members", "user_id, event_id, role, status, joined_at"),
+    fetchAll("user_sessions", "user_id, session_date"),
   ]);
 
   console.log(
@@ -189,6 +195,17 @@ export async function GET() {
     (p) => p.last_active_at && new Date(p.last_active_at) >= monthAgo
   ).length;
   const wauMauRatio = mau > 0 ? Math.round((wau / mau) * 100) : 0;
+  const dauMauRatio = mau > 0 ? Math.round((dau / mau) * 100) : 0;
+
+  // ── MoM Growth — compare last 28d signups vs prior 28d ───────────────────
+  const prevMonthCount = profiles.filter((p) => {
+    const c = new Date(p.created_at);
+    return c >= twoMonthsAgo && c < monthAgo;
+  }).length;
+  const momGrowthPct =
+    prevMonthCount > 0
+      ? Math.round(((newLast30d - prevMonthCount) / prevMonthCount) * 100)
+      : 0;
 
   // ── D7 Retention — activated users created 7+ days ago ───────────────────
   const d7Eligible = activatedProfiles.filter(
@@ -211,6 +228,63 @@ export async function GET() {
     const createdMs = new Date(p.created_at).getTime();
     return new Date(p.last_active_at).getTime() >= createdMs + 30 * 24 * 60 * 60 * 1000;
   }).length;
+
+  // ── Cohort Retention (true point-in-time, using user_sessions) ───────────
+  // Build map: user_id -> Set<"YYYY-MM-DD"> of days they were active
+  const sessionsByUser = new Map<string, Set<string>>();
+  userSessionsData.forEach((s: { user_id: string; session_date: string }) => {
+    if (!sessionsByUser.has(s.user_id)) sessionsByUser.set(s.user_id, new Set());
+    sessionsByUser.get(s.user_id)!.add(s.session_date.slice(0, 10));
+  });
+
+  function getSignupDatePT(createdAt: string): string {
+    return new Date(createdAt).toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
+  }
+
+  function addDays(dateStr: string, days: number): string {
+    const d = new Date(dateStr + "T12:00:00Z");
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
+  }
+
+  function hadSessionInRange(userId: string, signupDate: string, startDay: number, endDay: number): boolean {
+    const sessions = sessionsByUser.get(userId);
+    if (!sessions) return false;
+    for (let day = startDay; day <= endDay; day++) {
+      if (sessions.has(addDays(signupDate, day))) return true;
+    }
+    return false;
+  }
+
+  // D1 cohort: activated users created 1–31 days ago; check session on day 1
+  const d1CohortProfiles = activatedProfiles.filter((p) => {
+    const c = new Date(p.created_at);
+    return c <= oneDayAgoMs && c >= thirtyOneDaysAgo;
+  });
+  const d1CohortBase = d1CohortProfiles.length;
+  const d1CohortReturned = d1CohortProfiles.filter((p) =>
+    hadSessionInRange(p.id, getSignupDatePT(p.created_at), 1, 1)
+  ).length;
+
+  // D7 cohort: activated users created 7–37 days ago; check session on days 6-8
+  const d7CohortProfiles = activatedProfiles.filter((p) => {
+    const c = new Date(p.created_at);
+    return c <= sevenDaysAgo && c >= thirtySevenDaysAgo;
+  });
+  const d7CohortBase = d7CohortProfiles.length;
+  const d7CohortReturned = d7CohortProfiles.filter((p) =>
+    hadSessionInRange(p.id, getSignupDatePT(p.created_at), 6, 8)
+  ).length;
+
+  // D30 cohort: activated users created 30–60 days ago; check session on days 29-31
+  const d30CohortProfiles = activatedProfiles.filter((p) => {
+    const c = new Date(p.created_at);
+    return c <= thirtyDaysAgo && c >= sixtyDaysAgo;
+  });
+  const d30CohortBase = d30CohortProfiles.length;
+  const d30CohortReturned = d30CohortProfiles.filter((p) =>
+    hadSessionInRange(p.id, getSignupDatePT(p.created_at), 29, 31)
+  ).length;
 
   // ── Ever Returned — activated users base ─────────────────────────────────
   const returnedEver = activatedProfiles.filter((p) => !!p.first_return_at).length;
@@ -237,8 +311,10 @@ export async function GET() {
 
   // Completed plans & completion rate
   const completedPlans = events.filter((e: any) => e.status === "completed").length; // eslint-disable-line @typescript-eslint/no-explicit-any
-  const planCompletionRate = publishedEvents.length > 0
-    ? Math.round((completedPlans / publishedEvents.length) * 100)
+  // Use only terminal-state plans (completed + cancelled) as denominator so live plans don't dilute the rate
+  const terminalPlans = completedPlans + cancelledPlans;
+  const planCompletionRate = terminalPlans > 0
+    ? Math.round((completedPlans / terminalPlans) * 100)
     : 0;
 
   // Joiner → Creator: users who first joined, then later posted their own plan
@@ -327,11 +403,20 @@ export async function GET() {
     wau,
     mau,
     wauMauRatio,
+    dauMauRatio,
+    momGrowthPct,
+    prevMonthCount,
     returnedEver,
     returned7d,
     retentionBase,
     returned30d,
     d30RetentionBase,
+    d1CohortBase,
+    d1CohortReturned,
+    d7CohortBase,
+    d7CohortReturned,
+    d30CohortBase,
+    d30CohortReturned,
     weeklyData,
     referralCounts,
     signups7d,
