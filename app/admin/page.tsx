@@ -57,6 +57,16 @@ type Stats = {
   planCompletionRate: number;
   joinerToCreatorCount: number;
   joinerToCreatorRate: number;
+  monthlyParticipants: number;
+  monthlyParticipationRate: number;
+  totalPlanJoiners: number;
+  repeatPlanners: number;
+  repeatPlanRate: number;
+  avgPlansPerJoiner: number;
+  avgPlansPerMonth: number;
+  prevMonthMauCount: number;
+  retainedMauCount: number;
+  mauRetentionPct: number;
 };
 
 type WeekRow = {
@@ -229,6 +239,53 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* ── WashedUp Metrics ───────────────────────────────────────────── */}
+      <Section icon="🍊" title="WashedUp Metrics">
+        <div className="mb-4 px-3 py-2 rounded-lg bg-[#FDF5F0] border border-[#EDCFBF] text-xs text-[#8B4A1A]">
+          IRL social apps aren&apos;t measured by daily opens — they&apos;re measured by real-world participation. These are the metrics that show what WashedUp actually is.
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          <StatCard
+            label="Monthly Participation"
+            value={`${stats.monthlyParticipationRate}%`}
+            sub={`${stats.monthlyParticipants}/${stats.mau} MAU joined a plan this month`}
+            color="#D97746"
+          />
+          <StatCard
+            label="Repeat Plan Rate"
+            value={`${stats.repeatPlanRate}%`}
+            sub={`${stats.repeatPlanners}/${stats.totalPlanJoiners} joiners came back for 2+`}
+            color="#2E7D32"
+          />
+          <StatCard
+            label="MoM MAU Retention"
+            value={`${stats.mauRetentionPct}%`}
+            sub={`${stats.retainedMauCount}/${stats.prevMonthMauCount} last month's actives returned`}
+            color="#1565C0"
+          />
+          <StatCard
+            label="Avg Plans / Joiner"
+            value={stats.avgPlansPerJoiner}
+            sub={`${stats.avgPlansPerMonth} plans joined this month (actives)`}
+          />
+          <StatCard
+            label="Joiner → Creator"
+            value={`${stats.joinerToCreatorRate}%`}
+            sub={`${stats.joinerToCreatorCount} joined then posted their own plan`}
+            color="#1E1E1E"
+          />
+          <StatCard
+            label="MAU"
+            value={stats.mau}
+            sub="Active in last 28 days · activated users"
+          />
+        </div>
+        <div className="mt-4 px-3 py-3 rounded-lg bg-[#F5F3F0] border border-[#E8E3DC] text-xs text-[#555] leading-relaxed">
+          <span className="font-semibold text-[#1E1E1E]">How to frame this for YC: </span>
+          We don&apos;t compete for daily screen time. We compete with going to bars. Monthly participation shows real-world impact. Repeat rate shows the social loop is working. MoM MAU retention shows we&apos;re not a fad.
+        </div>
+      </Section>
+
       <Section icon="📈" title="Investor Snapshot">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           <StatCard label="Total Users" value={stats.totalUsers} color="#D97746" />
@@ -336,7 +393,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Row 1: Core marketplace metrics */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
           <StatCard
             label="Unique Creators"
             value={`${stats.uniqueCreators} (${stats.activatedUsers > 0 ? Math.round((stats.uniqueCreators / stats.activatedUsers) * 100) : 0}%)`}
@@ -352,12 +409,6 @@ export default function AdminDashboard() {
             value={`${stats.planCompletionRate}%`}
             sub={`${stats.completedPlans} completed of ${stats.completedPlans + stats.cancelledPlans} finished plans`}
             color="#2E7D32"
-          />
-          <StatCard
-            label="Joiner → Creator"
-            value={`${stats.joinerToCreatorRate}%`}
-            sub={`${stats.joinerToCreatorCount} joiners later posted their own plan`}
-            color="#C4622D"
           />
         </div>
 

@@ -291,6 +291,107 @@ export async function GET() {
     hadSessionInRange(p.id, getSignupDatePT(p.created_at), 29, 31)
   ).length;
 
+  // ── WashedUp IRL Metrics ─────────────────────────────────────────────────
+
+  // Helper: YYYY-MM-DD string in PT for boundary comparisons
+  const toDateStrPT = (d: Date) =>
+    d.toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
+
+  const activatedIds = new Set(activatedProfiles.map((p) => p.id));
+
+  // Monthly participation: % of MAU who joined ≥1 plan in last 28d
+  const mauUserIds = new Set(
+    activatedProfiles
+      .filter((p) => p.last_active_at && new Date(p.last_active_at) >= monthAgo)
+      .map((p) => p.id)
+  );
+  const mauPlanJoinersSet = new Set(
+    eventMembers
+      .filter(
+        (em) =>
+          em.role === "guest" &&
+          em.status === "joined" &&
+          em.joined_at &&
+          new Date(em.joined_at) >= monthAgo &&
+          mauUserIds.has(em.user_id)
+      )
+      .map((em) => em.user_id)
+  );
+  const monthlyParticipants = mauPlanJoinersSet.size;
+  const monthlyParticipationRate =
+    mau > 0 ? Math.round((monthlyParticipants / mau) * 100) : 0;
+
+  // Repeat plan rate: all-time joiners who joined 2+ plans
+  const joinCountByUser = new Map<string, number>();
+  eventMembers
+    .filter((em) => em.role === "guest" && em.status === "joined")
+    .forEach((em) => {
+      joinCountByUser.set(em.user_id, (joinCountByUser.get(em.user_id) || 0) + 1);
+    });
+  const totalPlanJoiners = joinCountByUser.size;
+  const repeatPlanners = Array.from(joinCountByUser.values()).filter((c) => c >= 2).length;
+  const repeatPlanRate =
+    totalPlanJoiners > 0 ? Math.round((repeatPlanners / totalPlanJoiners) * 100) : 0;
+  const avgPlansPerJoiner =
+    totalPlanJoiners > 0
+      ? Math.round(
+          (Array.from(joinCountByUser.values()).reduce((a, b) => a + b, 0) /
+            totalPlanJoiners) *
+            10
+        ) / 10
+      : 0;
+
+  // Avg plans joined per month (last 28d, among MAU joiners)
+  const monthlyJoinerMap = new Map<string, number>();
+  eventMembers
+    .filter(
+      (em) =>
+        em.role === "guest" &&
+        em.status === "joined" &&
+        em.joined_at &&
+        new Date(em.joined_at) >= monthAgo &&
+        mauUserIds.has(em.user_id)
+    )
+    .forEach((em) => {
+      monthlyJoinerMap.set(em.user_id, (monthlyJoinerMap.get(em.user_id) || 0) + 1);
+    });
+  const avgPlansPerMonth =
+    monthlyJoinerMap.size > 0
+      ? Math.round(
+          (Array.from(monthlyJoinerMap.values()).reduce((a, b) => a + b, 0) /
+            monthlyJoinerMap.size) *
+            10
+        ) / 10
+      : 0;
+
+  // MoM MAU retention via user_sessions
+  const prevMonthStartStr = toDateStrPT(twoMonthsAgo);
+  const prevMonthEndStr = toDateStrPT(monthAgo);
+  const currMonthStartStr = toDateStrPT(monthAgo);
+
+  const prevMonthSessionUsers = new Set(
+    userSessionsData
+      .filter((s: { user_id: string; session_date: string }) => {
+        const d = s.session_date.slice(0, 10);
+        return d >= prevMonthStartStr && d < prevMonthEndStr && activatedIds.has(s.user_id);
+      })
+      .map((s: { user_id: string }) => s.user_id)
+  );
+  const currMonthSessionUsers = new Set(
+    userSessionsData
+      .filter((s: { user_id: string; session_date: string }) => {
+        const d = s.session_date.slice(0, 10);
+        return d >= currMonthStartStr && activatedIds.has(s.user_id);
+      })
+      .map((s: { user_id: string }) => s.user_id)
+  );
+  const retainedMauCount = Array.from(prevMonthSessionUsers).filter((id) =>
+    currMonthSessionUsers.has(id as string)
+  ).length;
+  const prevMonthMauCount = prevMonthSessionUsers.size;
+  const mauRetentionPct =
+    prevMonthMauCount > 0 ? Math.round((retainedMauCount / prevMonthMauCount) * 100) : 0;
+
   // ── Ever Returned — activated users base ─────────────────────────────────
   const returnedEver = activatedProfiles.filter((p) => !!p.first_return_at).length;
 
@@ -431,5 +532,15 @@ export async function GET() {
     planCompletionRate,
     joinerToCreatorCount,
     joinerToCreatorRate,
+    monthlyParticipants,
+    monthlyParticipationRate,
+    totalPlanJoiners,
+    repeatPlanners,
+    repeatPlanRate,
+    avgPlansPerJoiner,
+    avgPlansPerMonth,
+    prevMonthMauCount,
+    retainedMauCount,
+    mauRetentionPct,
   });
 }
