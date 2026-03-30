@@ -256,15 +256,20 @@ export async function GET() {
     return false;
   }
 
-  // D1 cohort: activated users created 1–31 days ago; check session on day 1
+  // D1 cohort: activated users created 1–31 days ago
+  // Combines user_sessions (day 1 row) OR first_return_at within 24h of signup
   const d1CohortProfiles = activatedProfiles.filter((p) => {
     const c = new Date(p.created_at);
     return c <= oneDayAgoMs && c >= thirtyOneDaysAgo;
   });
   const d1CohortBase = d1CohortProfiles.length;
-  const d1CohortReturned = d1CohortProfiles.filter((p) =>
-    hadSessionInRange(p.id, getSignupDatePT(p.created_at), 1, 1)
-  ).length;
+  const d1CohortReturned = d1CohortProfiles.filter((p) => {
+    const hadSession = hadSessionInRange(p.id, getSignupDatePT(p.created_at), 1, 1);
+    const hadEarlyReturn =
+      !!p.first_return_at &&
+      new Date(p.first_return_at).getTime() <= new Date(p.created_at).getTime() + 24 * 60 * 60 * 1000;
+    return hadSession || hadEarlyReturn;
+  }).length;
 
   // D7 cohort: activated users created 7–37 days ago; check session on days 6-8
   const d7CohortProfiles = activatedProfiles.filter((p) => {
