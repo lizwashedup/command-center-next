@@ -76,12 +76,13 @@ type WeekRow = {
   weekEnding: string;
   totalUsers: number;
   newUsers: number;
-  totalPlans: number;
+  wpm: number;
   plans2Plus: number;
   plans3Plus: number;
   avgMembers: number;
   messages: number;
   activePlans: number;
+  isLive?: boolean;
 };
 
 function StatCard({
@@ -252,7 +253,7 @@ export default function AdminDashboard() {
     { label: "Activated", value: stats.activatedUsers, pct: activationPct },
     { label: "Monthly Active (MAU)", value: stats.mau, pct: mauPct },
     {
-      label: "Joined a Plan (30d)",
+      label: "Joined a Plan (28d)",
       value: stats.monthlyParticipants,
       pct:
         stats.mau > 0 ? Math.round((stats.monthlyParticipants / stats.mau) * 100) : 0,
@@ -363,9 +364,9 @@ export default function AdminDashboard() {
         </div>
         <div className="grid grid-cols-2 md:grid-cols-2 gap-3 mb-5">
           <StatCard
-            label="New (Last 30 Days)"
+            label="New (Last 28 Days)"
             value={stats.newLast30d}
-            sub={`${stats.prevMonthCount} the 30d before that`}
+            sub={`${stats.prevMonthCount} the 28d before that`}
           />
           <StatCard
             label="MoM Growth"
@@ -511,7 +512,7 @@ export default function AdminDashboard() {
         <Divider label="Stickiness" />
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <StatCard label="DAU" value={stats.dau} sub="Last 24h" />
+          <StatCard label="DAU" value={stats.dau} sub="Today (PT)" />
           <StatCard label="WAU" value={stats.wau} sub="Last 7 days" />
           <StatCard label="MAU" value={stats.mau} sub="Last 28 days" />
           <StatCard
@@ -669,12 +670,12 @@ export default function AdminDashboard() {
       </Section>
 
       {/* ── Weekly Table ────────────────────────────────────────────────── */}
-      <Section icon="📅" title="Weekly Data" subtitle="Historical snapshot per week since launch">
+      <Section icon="📅" title="Weekly Data" subtitle="Historical snapshot per week since launch · WPM = active plans created that week">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[#E8E3DC] text-left">
-                {["Week", "Ending", "Users", "New", "Plans", "2+", "3+", "Avg Mbr", "Msgs", "Active"].map((h) => (
+                {["Week", "Ending", "Users", "New", "WPM", "2+", "3+", "Avg Mbr", "Msgs", "Active"].map((h) => (
                   <th key={h} className="py-2 pr-4 text-[#999] font-medium text-xs whitespace-nowrap">
                     {h}
                   </th>
@@ -683,12 +684,23 @@ export default function AdminDashboard() {
             </thead>
             <tbody>
               {stats.weeklyData.map((row) => (
-                <tr key={row.week} className="border-b border-[#F0EBE3] hover:bg-[#FBF9F6]">
-                  <td className="py-2 pr-4 font-medium text-[#1E1E1E]">Wk {row.week}</td>
+                <tr
+                  key={row.week}
+                  className={`border-b border-[#F0EBE3] hover:bg-[#FBF9F6] ${row.isLive ? "bg-[#FFF8F0]" : ""}`}
+                >
+                  <td className="py-2 pr-4 font-medium text-[#1E1E1E]">
+                    Wk {row.week}
+                    {row.isLive && (
+                      <span className="ml-1.5 inline-flex items-center gap-1 text-[10px] font-bold text-[#D97746] uppercase tracking-wide">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#D97746] animate-pulse inline-block" />
+                        Live
+                      </span>
+                    )}
+                  </td>
                   <td className="py-2 pr-4 text-[#666] whitespace-nowrap">{row.weekEnding}</td>
                   <td className="py-2 pr-4 font-bold text-[#D97746]">{row.totalUsers}</td>
                   <td className="py-2 pr-4 text-[#2E7D32] font-medium">+{row.newUsers}</td>
-                  <td className="py-2 pr-4 text-[#666]">{row.totalPlans}</td>
+                  <td className="py-2 pr-4 text-[#666]">{row.wpm}</td>
                   <td className="py-2 pr-4 font-bold text-[#D97746]">{row.plans2Plus}</td>
                   <td className="py-2 pr-4 text-[#666]">{row.plans3Plus}</td>
                   <td className="py-2 pr-4 text-[#666]">{row.avgMembers}</td>
@@ -707,13 +719,7 @@ export default function AdminDashboard() {
                     )}%
                   </td>
                   <td className="py-2 pr-4" />
-                  <td className="py-2 pr-4 text-[#D97746]">
-                    +{Math.round(
-                      ((stats.weeklyData[stats.weeklyData.length - 1].totalPlans -
-                        stats.weeklyData[0].totalPlans) /
-                        Math.max(stats.weeklyData[0].totalPlans, 1)) * 100
-                    )}%
-                  </td>
+                  <td className="py-2 pr-4 text-[#999]">—</td>
                   <td className="py-2 pr-4 text-[#D97746]">
                     +{Math.round(
                       ((stats.weeklyData[stats.weeklyData.length - 1].plans2Plus -

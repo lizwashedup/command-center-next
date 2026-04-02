@@ -453,22 +453,95 @@ export async function GET() {
     .map(([source, count]) => ({ source, count }))
     .sort((a, b) => b.count - a.count);
 
-  const weeklyData = (snapshots ?? []).map((s) => ({
-    week: s.week_number,
-    weekEnding: new Date(s.week_end + "T12:00:00Z").toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      timeZone: "America/Los_Angeles",
-    }),
-    totalUsers: s.total_users,
-    newUsers: s.new_users,
-    totalPlans: s.total_plans,
-    plans2Plus: s.plans_two_plus,
-    plans3Plus: s.plans_three_plus,
-    avgMembers: parseFloat(s.avg_members_per_plan) || 0,
-    messages: s.total_messages,
-    activePlans: s.active_plans,
-  }));
+  // Weekly Plans Made (WPM): plans created during each week that are currently active
+  const liveStatusSet = new Set(["forming", "active", "full"]);
+
+  const weeklyData = (snapshots ?? []).map((s) => {
+    const weekEnd = new Date(s.week_end + "T23:59:59Z");
+    const weekStart = new Date(weekEnd.getTime() - 6 * 24 * 60 * 60 * 1000);
+    weekStart.setUTCHours(0, 0, 0, 0);
+
+    // WPM = all non-draft plans created this week (regardless of current status)
+    const wpm = events.filter((e) => {
+      const created = new Date(e.created_at);
+      return created >= weekStart && created <= weekEnd && e.status !== "draft";
+    }).length;
+
+    return {
+      week: s.week_number,
+      weekEnding: new Date(s.week_end + "T12:00:00Z").toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        timeZone: "America/Los_Angeles",
+      }),
+      totalUsers: s.total_users,
+      newUsers: s.new_users,
+      wpm,
+      plans2Plus: s.plans_two_plus,
+      plans3Plus: s.plans_three_plus,
+      avgMembers: parseFloat(s.avg_members_per_plan) || 0,
+      messages: s.total_messages,
+      activePlans: s.active_plans,
+      isLive: false,
+    };
+  });
+
+  // ── Live Week 12 row (current week, always up-to-date) ────────────────────
+  // Week 12 started Mar 30 PT; derive dynamically so it works for any current week
+  const lastSnapshot = snapshots && snapshots.length > 0
+    ? snapshots[snapshots.length - 1]
+    : null;
+  const lastSnapshotWeekEnd = lastSnapshot
+    ? new Date(lastSnapshot.week_end + "T23:59:59Z")
+    : null;
+  const currentWeekStart = lastSnapshotWeekEnd
+    ? new Date(lastSnapshotWeekEnd.getTime() + 1000) // 1 sec after last week ended
+    : null;
+
+  if (currentWeekStart && currentWeekStart <= now) {
+    const currentWeekNumber = lastSnapshot ? lastSnapshot.week_number + 1 : 1;
+
+    const newUsersThisWeek = profiles.filter(
+      (p) => new Date(p.created_at) >= currentWeekStart
+    ).length;
+
+    const wpmThisWeek = events.filter((e) => {
+      const created = new Date(e.created_at);
+      return created >= currentWeekStart && e.status !== "draft";
+    }).length;
+
+    const publishedThisWeek = events.filter(
+      (e) => e.status !== "draft" && new Date(e.created_at) >= currentWeekStart
+    );
+
+    const liveThisWeek = events.filter(
+      (e) => liveStatusSet.has(e.status) && new Date(e.created_at) >= currentWeekStart
+    ).length;
+
+    const messagesThisWeek = messages.filter(
+      (m) => new Date(m.created_at) >= currentWeekStart
+    ).length;
+
+    weeklyData.push({
+      week: currentWeekNumber,
+      weekEnding: "Live",
+      totalUsers: profiles.length,
+      newUsers: newUsersThisWeek,
+      wpm: wpmThisWeek,
+      plans2Plus: publishedThisWeek.filter((e) => e.member_count >= 2).length,
+      plans3Plus: publishedThisWeek.filter((e) => e.member_count >= 3).length,
+      avgMembers:
+        publishedThisWeek.length > 0
+          ? Math.round(
+              (publishedThisWeek.reduce((s, e) => s + (e.member_count || 0), 0) /
+                publishedThisWeek.length) * 10
+            ) / 10
+          : 0,
+      messages: messagesThisWeek,
+      activePlans: liveThisWeek,
+      isLive: true,
+    });
+  }
 
   return NextResponse.json({
     totalUsers,
