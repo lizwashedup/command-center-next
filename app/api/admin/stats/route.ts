@@ -103,7 +103,7 @@ export async function GET() {
   // ── User counts ──────────────────────────────────────────────────────────
   const totalUsers = profiles.length;
 
-  const newToday = ptStats?.new_today ?? 0;
+  const newToday = profiles.filter((p) => new Date(p.created_at) >= dayAgo).length;
   const newThisWeek = ptStats?.new_this_week ?? 0;
   const lastWeekNew = ptStats?.prev_week_count ?? 0;
   const newLast30d = ptStats?.new_this_month ?? 0;
@@ -209,9 +209,10 @@ export async function GET() {
     const c = new Date(p.created_at);
     return c >= twoMonthsAgo && c < monthAgo;
   }).length;
+  const newLast28d = profiles.filter((p) => new Date(p.created_at) >= monthAgo).length;
   const momGrowthPct =
     prevMonthCount > 0
-      ? Math.round(((newLast30d - prevMonthCount) / prevMonthCount) * 100)
+      ? Math.round(((newLast28d - prevMonthCount) / prevMonthCount) * 100)
       : 0;
 
   // ── D7 Retention — activated users created 7+ days ago ───────────────────
