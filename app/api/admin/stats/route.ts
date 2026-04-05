@@ -79,9 +79,9 @@ export async function GET() {
   const [profiles, events, allMessages, eventMembers, userSessionsData] = await Promise.all([
     fetchAll(
       "profiles",
-      "id, created_at, onboarding_status, profile_photo_url, bio, gender, first_name_display, referral_source, phone_number, phone_verified, last_active_at, first_return_at"
+      "id, created_at, onboarding_status, profile_photo_url, bio, gender, first_name_display, referral_source, phone_number, phone_verified, last_active_at, first_return_at, birthday"
     ),
-    fetchAll("events", "id, created_at, member_count, status, start_time, creator_user_id"),
+    fetchAll("events", "id, created_at, member_count, max_invites, status, start_time, creator_user_id"),
     fetchAll("messages", "id, event_id, user_id, created_at, message_type"),
     fetchAll("event_members", "user_id, event_id, role, status, joined_at"),
     fetchAll("user_sessions", "user_id, session_date"),
@@ -450,6 +450,82 @@ export async function GET() {
     ? Math.round((joinerToCreatorCount / uniqueJoiners) * 100)
     : 0;
 
+  // ── Repeat Host Rate ──────────────────────────────────────────────────────
+  const creatorPlanCounts = new Map<string, number>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  events.forEach((e: any) => {
+    if (!e.creator_user_id || e.status === "draft") return;
+    creatorPlanCounts.set(e.creator_user_id, (creatorPlanCounts.get(e.creator_user_id) || 0) + 1);
+  });
+  const totalHostCount = creatorPlanCounts.size;
+  const repeatHostCreators = Array.from(creatorPlanCounts.values()).filter((c) => c > 1).length;
+  const repeatHostRate = totalHostCount > 0 ? Math.round((repeatHostCreators / totalHostCount) * 100) : 0;
+
+  // ── Median hours from signup to first plan join ───────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const profileMap = new Map<string, any>(profiles.map((p: any) => [p.id, p]));
+  const firstJoinByUserAll = new Map<string, number>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  eventMembers
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .filter((em: any) => em.role === "guest" && em.status === "joined" && em.joined_at)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .forEach((em: any) => {
+      const t = new Date(em.joined_at).getTime();
+      const existing = firstJoinByUserAll.get(em.user_id);
+      if (existing === undefined || t < existing) firstJoinByUserAll.set(em.user_id, t);
+    });
+  const joinTimesHours: number[] = [];
+  firstJoinByUserAll.forEach((firstJoinMs, userId) => {
+    const profile = profileMap.get(userId);
+    if (!profile) return;
+    const signupMs = new Date(profile.created_at).getTime();
+    const diffHours = (firstJoinMs - signupMs) / (1000 * 60 * 60);
+    if (diffHours > 0) joinTimesHours.push(diffHours);
+  });
+  joinTimesHours.sort((a, b) => a - b);
+  const medianHoursToFirstJoin =
+    joinTimesHours.length > 0
+      ? Math.round(joinTimesHours[Math.floor(joinTimesHours.length / 2)] * 10) / 10
+      : 0;
+
+  // ── Multi-decade plan diversity ───────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const profileDecadeMap = new Map<string, number>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  profiles.forEach((p: any) => {
+    if (!p.birthday) return;
+    const ageMs = now.getTime() - new Date(p.birthday).getTime();
+    const age = Math.floor(ageMs / (365.25 * 24 * 60 * 60 * 1000));
+    profileDecadeMap.set(p.id, Math.floor(age / 10) * 10);
+  });
+  const filledOrCompletedIds = new Set<string>(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    events.filter((e: any) => e.status === "full" || e.status === "completed").map((e: any) => e.id)
+  );
+  const totalFilledPlans = filledOrCompletedIds.size;
+  const membersByFilledEvent = new Map<string, string[]>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  eventMembers
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .filter((em: any) => em.role === "guest" && em.status === "joined" && filledOrCompletedIds.has(em.event_id))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .forEach((em: any) => {
+      if (!membersByFilledEvent.has(em.event_id)) membersByFilledEvent.set(em.event_id, []);
+      membersByFilledEvent.get(em.event_id)!.push(em.user_id);
+    });
+  let multiDecadePlanCount = 0;
+  membersByFilledEvent.forEach((userIds) => {
+    const decades = new Set<number>();
+    userIds.forEach((uid) => {
+      const decade = profileDecadeMap.get(uid);
+      if (decade !== undefined) decades.add(decade);
+    });
+    if (decades.size >= 2) multiDecadePlanCount++;
+  });
+  const multiDecadePlanPct =
+    totalFilledPlans > 0 ? Math.round((multiDecadePlanCount / totalFilledPlans) * 100) : 0;
+
   // ── Referral source breakdown ─────────────────────────────────────────────
   const referralMap: Record<string, number> = {};
   profiles.forEach((p) => {
@@ -618,5 +694,12 @@ export async function GET() {
     retainedMauCount,
     mauRetentionPct,
     engagedMauCount,
+    repeatHostCreators,
+    repeatHostRate,
+    totalHostCount,
+    medianHoursToFirstJoin,
+    multiDecadePlanCount,
+    totalFilledPlans,
+    multiDecadePlanPct,
   });
 }

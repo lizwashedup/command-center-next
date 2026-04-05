@@ -70,6 +70,13 @@ type Stats = {
   retainedMauCount: number;
   mauRetentionPct: number;
   engagedMauCount: number;
+  repeatHostCreators: number;
+  repeatHostRate: number;
+  totalHostCount: number;
+  medianHoursToFirstJoin: number;
+  multiDecadePlanCount: number;
+  totalFilledPlans: number;
+  multiDecadePlanPct: number;
 };
 
 type WeekRow = {
@@ -339,6 +346,57 @@ export default function AdminDashboard() {
           We compete with going out, not Instagram. Monthly participation shows real-world impact.
           Repeat rate shows the social loop is working. Month-1 retention shows new users are sticking.
           Joiner→Creator is our network effect flywheel.
+        </div>
+      </Section>
+
+      {/* ── Engagement Quality ──────────────────────────────────────────── */}
+      <Section
+        icon="📊"
+        title="Engagement Quality"
+        subtitle="Deep behavioral metrics — last 79 days"
+      >
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <StatCard
+            label="WAU / MAU"
+            value={`${stats.wauMauRatio}%`}
+            sub={`${stats.wau} WAU of ${stats.mau} MAU`}
+            highlight="blue"
+          />
+          <StatCard
+            label="Repeat Host Rate"
+            value={`${stats.repeatHostRate}%`}
+            sub={`${stats.repeatHostCreators} of ${stats.totalHostCount} creators posted 2+ plans`}
+            highlight="green"
+          />
+          <StatCard
+            label="Median Join Time"
+            value={`${stats.medianHoursToFirstJoin}h`}
+            sub="From signup to first plan join"
+            highlight="orange"
+          />
+          <StatCard
+            label="Joiner → Creator"
+            value={`${stats.joinerToCreatorRate}%`}
+            sub={`${stats.joinerToCreatorCount} joiners later posted a plan`}
+            highlight="dark"
+          />
+          <StatCard
+            label="Cross-Decade Plans"
+            value={`${stats.multiDecadePlanPct}%`}
+            sub={`${stats.multiDecadePlanCount} of ${stats.totalFilledPlans} filled plans span 2+ age groups`}
+            highlight="green"
+          />
+          <StatCard
+            label="Month-1 Retention"
+            value={`${stats.mauRetentionPct}%`}
+            sub={`${stats.retainedMauCount}/${stats.prevMonthMauCount} returned within 30 days`}
+            highlight="blue"
+          />
+        </div>
+        <div className="mt-4 px-4 py-3 rounded-xl bg-[#FBF9F6] border border-[#E8E3DC] text-xs text-[#666] leading-relaxed">
+          <span className="font-semibold text-[#1E1E1E]">Benchmark context: </span>
+          WAU/MAU &gt;20% is strong for social apps (ours: {stats.wauMauRatio}%). Repeat host rate shows supply-side health.
+          Sub-5h median join time means users find value immediately. Cross-decade diversity proves real-world range.
         </div>
       </Section>
 
