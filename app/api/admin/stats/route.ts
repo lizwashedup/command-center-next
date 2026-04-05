@@ -387,6 +387,11 @@ export async function GET() {
   const mauRetentionPct =
     prevMonthMauCount > 0 ? Math.round((retainedMauCount / prevMonthMauCount) * 100) : 0;
 
+  // ── Engaged MAU — took a social action (msg, plan join/create, reaction) in last 28d ──
+  const engagedMauCount = activatedProfiles.filter(
+    (p) => p.last_active_at && new Date(p.last_active_at) >= monthAgo
+  ).length;
+
   // ── Ever Returned — activated users base ─────────────────────────────────
   const returnedEver = activatedProfiles.filter((p) => !!p.first_return_at).length;
 
@@ -612,5 +617,6 @@ export async function GET() {
     prevMonthMauCount,
     retainedMauCount,
     mauRetentionPct,
+    engagedMauCount,
   });
 }

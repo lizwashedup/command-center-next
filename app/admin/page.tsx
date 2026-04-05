@@ -69,6 +69,7 @@ type Stats = {
   prevMonthMauCount: number;
   retainedMauCount: number;
   mauRetentionPct: number;
+  engagedMauCount: number;
 };
 
 type WeekRow = {
@@ -308,6 +309,12 @@ export default function AdminDashboard() {
             value={`${stats.mauRetentionPct}%`}
             sub={`${stats.retainedMauCount}/${stats.prevMonthMauCount} returned within 30 days of signup`}
             highlight="blue"
+          />
+          <StatCard
+            label="Engaged MAU"
+            value={stats.engagedMauCount}
+            sub={`messaged, joined, or created a plan (28d)`}
+            highlight="orange"
           />
           <StatCard
             label="Joiner → Creator"
