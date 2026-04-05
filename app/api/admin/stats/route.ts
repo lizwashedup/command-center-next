@@ -373,15 +373,16 @@ export async function GET() {
       : 0;
 
   // Month-1 Retention: of activated users who signed up 28–56 days ago,
-  // what % are still active in the current 28d window?
-  // Uses last_active_at which is reliable (updated on every app open).
+  // did they return at least once within their first 30 days?
+  // Combines first_return_at (set by middleware on genuine returns) + user_sessions.
+  // Sessions are sparse until May 26 fix; first_return_at is the primary signal.
   const newCohortProfiles = activatedProfiles.filter((p) => {
     const c = new Date(p.created_at);
     return c >= twoMonthsAgo && c < monthAgo;
   });
   const prevMonthMauCount = newCohortProfiles.length; // "last month's new users"
-  const retainedMauCount = newCohortProfiles.filter(
-    (p) => p.last_active_at && new Date(p.last_active_at) >= monthAgo
+  const retainedMauCount = newCohortProfiles.filter((p) =>
+    !!p.first_return_at || hadSessionInRange(p.id, getSignupDatePT(p.created_at), 1, 30)
   ).length;
   const mauRetentionPct =
     prevMonthMauCount > 0 ? Math.round((retainedMauCount / prevMonthMauCount) * 100) : 0;

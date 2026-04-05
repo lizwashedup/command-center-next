@@ -306,7 +306,7 @@ export default function AdminDashboard() {
           <StatCard
             label="Month-1 Retention"
             value={`${stats.mauRetentionPct}%`}
-            sub={`${stats.retainedMauCount}/${stats.prevMonthMauCount} last month's users still active`}
+            sub={`${stats.retainedMauCount}/${stats.prevMonthMauCount} returned within 30 days of signup`}
             highlight="blue"
           />
           <StatCard
