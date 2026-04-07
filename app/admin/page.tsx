@@ -261,25 +261,27 @@ export default function CommandCenterPage() {
       <Card title="Retention">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
           {[
-            { label: 'D1 Retention', pct: d1Pct, retained: stats.d1_retained, eligible: stats.d1_eligible, desc: 'Had a session on day 1 after signup', bench: 'Global D1 avg: 26.5% (AppsFlyer 2025)', note: 'Bounded retention. % of users who opened the app on the day after signup. Session-based (user_sessions table). Tracking live since March 30 — D1 accurate for signups after March 30.' },
-            { label: 'D7 Retention', pct: d7Pct, retained: stats.d7_retained, eligible: stats.d7_eligible, desc: 'Had a session within days 1–7', bench: 'Global D7 avg: 10.7% (AppsFlyer 2025)', note: 'Bounded retention. % of users who opened the app at least once within days 1-7 after signup. Session-based. Fully accurate by ~April 13.' },
-            { label: 'D30 Retention', pct: d30Pct, retained: stats.d30_retained, eligible: stats.d30_eligible, desc: 'Had a session within days 1–30', bench: 'Global D30 avg: 4.2% (AppsFlyer 2025)', note: 'Bounded retention. % of users who opened the app at least once within days 1-30 after signup. Session-based. Fully accurate by ~May 9.' },
+            { label: 'D1 Retention', pct: d1Pct, retained: stats.d1_retained, eligible: stats.d1_eligible, desc: 'Opened the app on exactly day 1 after signup', bench: 'Global D1 avg: 26.5% (AppsFlyer 2025)', note: 'Classic retention. Did the user have a session on exactly the day after they signed up? Source: user_sessions table.' },
+            { label: 'D7 Retention', pct: d7Pct, retained: stats.d7_retained, eligible: stats.d7_eligible, desc: 'Opened the app on days 6–8 after signup', bench: 'Global D7 avg: 10.7% (AppsFlyer 2025)', note: 'Classic retention. Did the user have a session on day 6, 7, or 8 after signup? This is the industry-standard "D7" measurement.' },
+            { label: 'D30 Retention', pct: d30Pct, retained: stats.d30_retained, eligible: stats.d30_eligible, desc: 'Opened the app on days 29–31 after signup', bench: 'Global D30 avg: 4.2% (AppsFlyer 2025)', note: 'Classic retention. Did the user have a session on day 29, 30, or 31 after signup? Industry-standard "D30" measurement.' },
           ].map((r) => (
             <div key={r.label} style={{ borderRadius: '14px', padding: '20px', border: '1px solid var(--border)', background: 'var(--bg-surface)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
               <div style={{ fontSize: '11px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--parchment-muted)', marginBottom: '8px' }}>{r.label}</div>
               <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '42px', fontWeight: 700, color: 'var(--parchment)' }}>{r.pct}%</div>
-              <div style={{ fontSize: '12px', color: 'var(--parchment-dim)', margin: '4px 0 8px' }}>{r.retained} of {r.eligible} eligible users · {r.desc}</div>
+              <div style={{ fontSize: '12px', color: 'var(--parchment-dim)', margin: '4px 0 8px' }}>{r.retained} of {r.eligible} eligible · {r.desc}</div>
               <div style={{ height: '8px', background: 'var(--bg-elevated)', borderRadius: '20px', overflow: 'hidden' }}>
-                <div style={{ height: '100%', background: 'var(--terracotta)', borderRadius: '20px', width: `${r.pct}%`, transition: 'width 0.3s' }} />
+                <div style={{ height: '100%', background: 'var(--terracotta)', borderRadius: '20px', width: `${Math.min(r.pct * 2, 100)}%`, transition: 'width 0.3s' }} />
               </div>
               <div style={{ fontSize: '11px', color: 'var(--parchment-muted)', fontStyle: 'italic', marginTop: '6px' }}>{r.bench}</div>
-              <div style={{ fontSize: '10px', color: 'var(--parchment-dim)', marginTop: '6px', lineHeight: 1.4 }}>{r.note}</div>
+              <div style={{ fontSize: '10px', color: 'var(--parchment-dim)', marginTop: '6px', lineHeight: 1.4, borderTop: '1px solid var(--border)', paddingTop: '6px' }}>{r.note}</div>
             </div>
           ))}
         </div>
         <InfoBox>
-          <span style={{ fontWeight: 600, color: 'var(--parchment)' }}>Bounded vs unbounded retention: </span>
-          Bounded retention = user returned at any point within the window. Unbounded retention = user returned on that specific day. We use bounded because WashedUp&apos;s natural frequency is weekly, not daily — users don&apos;t open the app every day, they open it when they&apos;re planning something. Global average D7 bounded retention (app open): 10.7% (AppsFlyer 2025).
+          <span style={{ fontWeight: 600, color: 'var(--parchment)' }}>Why these numbers are currently low: </span>
+          Session tracking (user_sessions table) was added on March 30, 2026. Most users in the denominator signed up before that date and have no session records for their early days — they show as &quot;not retained&quot; even if they were active. As new post-March-30 users age into each window, the numbers will become accurate.
+          D1 is accurate now for recent signups. D7 becomes fully accurate ~April 13. D30 becomes fully accurate ~May 9.
+          These are classic/unbounded retention — &quot;did the user open the app on that specific day?&quot; — which is the industry standard used by AppsFlyer, Mixpanel, and Amplitude.
         </InfoBox>
       </Card>
 
