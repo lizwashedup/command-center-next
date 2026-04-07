@@ -23,6 +23,7 @@ interface Stats {
   total_plans: number;
   plans_cancelled: number;
   total_creators: number;
+  creator_retention_rate: number;
   total_joiners: number;
   repeat_joiners: number;
   physical_participation_rate: number;
@@ -248,7 +249,7 @@ export default function OpsDashboardPage() {
                 { metric: 'D7 Retention', value: `${d7Pct}%`, good: '15%', great: '25%+' },
                 { metric: 'D30 Retention', value: `${d30Pct}%`, good: '10%', great: '20%+' },
                 { metric: 'MoM Signup Growth', value: `${stats.new_7d > 0 ? '+' : ''}active`, good: '15%', great: '30%+' },
-                { metric: 'Creator Retention', value: `${stats.total_creators > 0 ? Math.round(100 * stats.repeat_joiners / stats.total_joiners) : 0}%`, good: '20%', great: '40%+' },
+                { metric: 'Creator Retention', value: `${stats.creator_retention_rate}%`, good: '20%', great: '40%+' },
               ].map((row) => (
                 <tr key={row.metric} style={{ borderBottom: '1px solid var(--border)' }}>
                   <td style={{ padding: '10px 16px 10px 0', fontWeight: 500, color: 'var(--parchment)' }}>{row.metric}</td>

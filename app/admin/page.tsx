@@ -38,6 +38,8 @@ interface Stats {
   repeat_joiners: number;
   physical_participation_rate: number;
   organic_creator_rate: number;
+  d1_retained: number;
+  d1_eligible: number;
   d7_retained: number;
   d7_eligible: number;
   d30_retained: number;
@@ -58,11 +60,12 @@ interface Stats {
 
 /* ── KPI Card ────────────────────────────────────────────── */
 
-function KPICard({ label, value, subtitle, benchmark }: {
+function KPICard({ label, value, subtitle, benchmark, note }: {
   label: string;
   value: string | number;
   subtitle?: string;
   benchmark?: string;
+  note?: string;
 }) {
   return (
     <div style={{
@@ -86,6 +89,9 @@ function KPICard({ label, value, subtitle, benchmark }: {
       )}
       {benchmark && (
         <div style={{ fontSize: '11px', color: 'var(--parchment-muted)', fontStyle: 'italic', marginTop: '4px' }}>{benchmark}</div>
+      )}
+      {note && (
+        <div style={{ fontSize: '10px', color: 'var(--parchment-dim)', marginTop: '6px', lineHeight: 1.4, borderTop: '1px solid var(--border)', paddingTop: '6px' }}>{note}</div>
       )}
     </div>
   );
@@ -136,6 +142,7 @@ export default function CommandCenterPage() {
   const trustTotal = stats.women_count + stats.men_count + stats.nonbinary_count;
   const trustRatio = trustTotal > 0 ? Math.round(100 * stats.women_count / trustTotal) : 0;
   const activationPct = stats.total_users > 0 ? Math.round(100 * stats.activated_users / stats.total_users) : 0;
+  const d1Pct = stats.d1_eligible > 0 ? Math.round(100 * stats.d1_retained / stats.d1_eligible) : 0;
   const d7Pct = stats.d7_eligible > 0 ? Math.round(100 * stats.d7_retained / stats.d7_eligible) : 0;
   const d30Pct = stats.d30_eligible > 0 ? Math.round(100 * stats.d30_retained / stats.d30_eligible) : 0;
   const jcRate = stats.joiner_to_creator_denom > 0 ? Math.round(100 * stats.joiner_to_creator_count / stats.joiner_to_creator_denom) : 0;
@@ -170,30 +177,35 @@ export default function CommandCenterPage() {
           value={stats.plans_completed}
           subtitle={`${stats.plans_completed_7d} this week · ${stats.plans_active} active now`}
           benchmark="North Star metric"
+          note="Events with status = 'completed'. Equivalent to Airbnb's Nights Booked."
         />
         <KPICard
           label="Physical Participation"
           value={`${stats.physical_participation_rate}%`}
           subtitle={`${stats.total_joiners} of ${stats.activated_users} activated users joined a plan`}
           benchmark="vs 1% internet content creation rate"
+          note="Unique users who joined a plan (status = 'joined') / total activated users. Measures physical commitment, not app opens."
         />
         <KPICard
           label="Organic Creator Rate"
           value={`${stats.organic_creator_rate}%`}
           subtitle={`${stats.total_creators} creators, $0 spent on supply`}
           benchmark="vs 1% internet avg (90-9-1 rule)"
+          note="Unique plan creators / total activated users. No incentives, no payments — people post plans because they want to do things."
         />
         <KPICard
           label="Trust Ratio"
           value={`${trustRatio}% women`}
           subtitle={`${stats.women_count}W · ${stats.men_count}M · ${stats.nonbinary_count}NB`}
           benchmark="vs 39% Bumble, 24% Tinder"
+          note="% of activated users identifying as women. No social app exceeds 58%. WashedUp achieves this with zero product mechanics forcing it."
         />
         <KPICard
           label="Total Users"
           value={stats.total_users.toLocaleString()}
           subtitle={`${stats.activated_users} activated (${activationPct}%) · $0 CAC`}
           benchmark={`+${stats.new_7d} this week`}
+          note="All profiles. Activated = completed onboarding. $0 CAC — 100% organic via social posts and word of mouth."
         />
       </div>
 
@@ -246,10 +258,11 @@ export default function CommandCenterPage() {
 
       {/* ── Retention ─────────────────────────────────────────── */}
       <Card title="Retention">
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
           {[
-            { label: 'D7 Retention', pct: d7Pct, retained: stats.d7_retained, eligible: stats.d7_eligible, desc: 'Returned within 7 days of signup', bench: 'Global D7 avg: 10.7% (AppsFlyer 2025)' },
-            { label: 'D30 Retention', pct: d30Pct, retained: stats.d30_retained, eligible: stats.d30_eligible, desc: 'Returned within 30 days of signup', bench: 'Global D30 avg: 4.2% (AppsFlyer 2025)' },
+            { label: 'D1 Retention', pct: d1Pct, retained: stats.d1_retained, eligible: stats.d1_eligible, desc: 'Had a session on day 1 after signup', bench: 'Global D1 avg: 26.5% (AppsFlyer 2025)', note: 'Bounded retention. % of users who opened the app on the day after signup. Session-based (user_sessions table). Tracking live since March 30 — D1 accurate for signups after March 30.' },
+            { label: 'D7 Retention', pct: d7Pct, retained: stats.d7_retained, eligible: stats.d7_eligible, desc: 'Had a session within days 1–7', bench: 'Global D7 avg: 10.7% (AppsFlyer 2025)', note: 'Bounded retention. % of users who opened the app at least once within days 1-7 after signup. Session-based. Fully accurate by ~April 13.' },
+            { label: 'D30 Retention', pct: d30Pct, retained: stats.d30_retained, eligible: stats.d30_eligible, desc: 'Had a session within days 1–30', bench: 'Global D30 avg: 4.2% (AppsFlyer 2025)', note: 'Bounded retention. % of users who opened the app at least once within days 1-30 after signup. Session-based. Fully accurate by ~May 9.' },
           ].map((r) => (
             <div key={r.label} style={{ borderRadius: '14px', padding: '20px', border: '1px solid var(--border)', background: 'var(--bg-surface)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
               <div style={{ fontSize: '11px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--parchment-muted)', marginBottom: '8px' }}>{r.label}</div>
@@ -259,9 +272,14 @@ export default function CommandCenterPage() {
                 <div style={{ height: '100%', background: 'var(--terracotta)', borderRadius: '20px', width: `${r.pct}%`, transition: 'width 0.3s' }} />
               </div>
               <div style={{ fontSize: '11px', color: 'var(--parchment-muted)', fontStyle: 'italic', marginTop: '6px' }}>{r.bench}</div>
+              <div style={{ fontSize: '10px', color: 'var(--parchment-dim)', marginTop: '6px', lineHeight: 1.4 }}>{r.note}</div>
             </div>
           ))}
         </div>
+        <InfoBox>
+          <span style={{ fontWeight: 600, color: 'var(--parchment)' }}>Bounded vs unbounded retention: </span>
+          Bounded retention = user returned at any point within the window. Unbounded retention = user returned on that specific day. We use bounded because WashedUp&apos;s natural frequency is weekly, not daily — users don&apos;t open the app every day, they open it when they&apos;re planning something. Global average D7 bounded retention (app open): 10.7% (AppsFlyer 2025).
+        </InfoBox>
       </Card>
 
       {/* ── WashedUp-Only Metrics ─────────────────────────────── */}
@@ -281,6 +299,9 @@ export default function CommandCenterPage() {
             <div style={{ fontSize: '12px', color: 'var(--terracotta)', fontWeight: 600, marginTop: '4px' }}>
               {stats.pct_plans_20yr_span}% of plans span 20+ years
             </div>
+            <div style={{ fontSize: '10px', color: 'var(--parchment-dim)', marginTop: '6px', lineHeight: 1.4 }}>
+              For each completed plan with 2+ attendees who provided birthdays, we calculate max(age) - min(age). No other social app tracks or creates cross-generational engagement.
+            </div>
           </div>
 
           {/* Strangers-to-Friends */}
@@ -293,6 +314,9 @@ export default function CommandCenterPage() {
             </div>
             <div style={{ fontSize: '12px', color: 'var(--parchment-dim)', marginTop: '4px' }}>
               Unique pairs who met at a plan and chose to do something together again
+            </div>
+            <div style={{ fontSize: '10px', color: 'var(--parchment-dim)', marginTop: '6px', lineHeight: 1.4 }}>
+              Unique user pairs who attended 2+ different completed plans together, excluding pairs where one person created all their shared plans.
             </div>
           </div>
 
@@ -309,6 +333,9 @@ export default function CommandCenterPage() {
             </div>
             <div style={{ fontSize: '11px', color: 'var(--parchment-muted)', fontStyle: 'italic', marginTop: '4px' }}>
               vs 1-2% guest-to-host on Airbnb
+            </div>
+            <div style={{ fontSize: '10px', color: 'var(--parchment-dim)', marginTop: '6px', lineHeight: 1.4 }}>
+              Users whose first action was joining (role = &apos;guest&apos;) and who later created their own plan. Temporal ordering enforced — the join must come before the creation.
             </div>
           </div>
 
@@ -333,6 +360,9 @@ export default function CommandCenterPage() {
               ))}
             </div>
             <div style={{ fontSize: '10px', color: 'var(--parchment-muted)', textAlign: 'center', marginTop: '4px' }}>plans attended</div>
+            <div style={{ fontSize: '10px', color: 'var(--parchment-dim)', marginTop: '6px', lineHeight: 1.4 }}>
+              Distribution of how many plans each user has joined. Each additional plan = deeper habit formation and higher switching cost.
+            </div>
           </div>
         </div>
       </Card>
@@ -345,6 +375,13 @@ export default function CommandCenterPage() {
           <InlineStat label="Fill Rate (3+)" value={`${stats.fill_rate_3plus}%`} sub={`of ${stats.published_plans} published plans`} />
           <InlineStat label="Creator Retention" value={`${stats.creator_retention_rate}%`} sub={`${stats.repeat_hosts} of ${stats.total_creators} posted 2+ plans`} highlight="blue" />
           <InlineStat label="Active Now" value={stats.plans_active} sub="forming, active, or full" />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', marginTop: '4px' }}>
+          <div />
+          <div />
+          <div style={{ fontSize: '10px', color: 'var(--parchment-dim)', lineHeight: 1.4 }}>% of published plans reaching 3+ members. Measures supply meeting demand.</div>
+          <div style={{ fontSize: '10px', color: 'var(--parchment-dim)', lineHeight: 1.4 }}>% of creators who made a 2nd plan. Supply-side retention — hardest metric for a two-sided marketplace.</div>
+          <div />
         </div>
       </Card>
 

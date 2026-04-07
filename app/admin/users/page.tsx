@@ -75,6 +75,27 @@ export default function AdminUsersPage() {
   const [sortBy, setSortBy] = useState<"created_at" | "last_active_at">("created_at");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [clearingId, setClearingId] = useState<string | null>(null);
+
+  const handleClearBot = useCallback(async (userId: string) => {
+    setClearingId(userId);
+    try {
+      const res = await fetch("/api/admin/users/clear-bot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      if (res.ok) {
+        setFlaggedUsers((prev) => prev.filter((u) => u.id !== userId));
+      } else {
+        alert("Failed to clear user");
+      }
+    } catch {
+      alert("Failed to clear user");
+    } finally {
+      setClearingId(null);
+    }
+  }, []);
 
   const handleDelete = useCallback(async (userId: string) => {
     setDeletingId(userId);
@@ -484,8 +505,24 @@ export default function AdminUsersPage() {
                       </div>
                     </div>
 
-                    {/* Right: Delete & Ban */}
-                    <div style={{ flexShrink: 0 }}>
+                    {/* Right: Actions */}
+                    <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {/* Clear from Bot Watch */}
+                      <button
+                        onClick={() => handleClearBot(u.id)}
+                        disabled={clearingId === u.id}
+                        style={{
+                          fontSize: '11px', fontWeight: 500, color: 'var(--success)',
+                          padding: '6px 14px', borderRadius: '24px',
+                          border: '1px solid rgba(46,125,50,0.3)', background: 'none',
+                          cursor: 'pointer', transition: 'opacity 0.15s',
+                          opacity: clearingId === u.id ? 0.5 : 1,
+                        }}
+                      >
+                        {clearingId === u.id ? "..." : "Not a Bot"}
+                      </button>
+
+                      {/* Delete & Ban */}
                       {confirmId === u.id ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <button
