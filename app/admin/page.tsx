@@ -211,8 +211,9 @@ export default function CommandCenterPage() {
 
       {/* ── Growth ────────────────────────────────────────────── */}
       <Card title="Growth">
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '20px' }}>
-          <InlineStat label="New This Week" value={stats.new_7d} highlight="orange" />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+          <InlineStat label="New Today" value={stats.new_today} sub="Since midnight PT" highlight="orange" />
+          <InlineStat label="New This Week" value={stats.new_7d} />
           <InlineStat label="New (28 Days)" value={stats.new_28d} sub={`${stats.prev_28d} the 28d before`} />
           <InlineStat label="MoM Growth" value={`${stats.mom_growth_pct >= 0 ? "+" : ""}${stats.mom_growth_pct}%`} accent={stats.mom_growth_pct >= 0 ? 'var(--success)' : 'var(--error)'} />
         </div>
