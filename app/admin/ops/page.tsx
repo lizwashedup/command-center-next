@@ -306,57 +306,94 @@ export default function OpsDashboardPage() {
       </Card>
 
       {/* Weekly Data Table */}
-      {stats.weekly_data && stats.weekly_data.length > 0 && (
-        <Card title="Weekly Data" action={<span style={{ fontSize: '11px', color: 'var(--parchment-muted)' }}>Historical snapshot per week since launch</span>}>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)' }}>
-                  {["Wk", "Ending", "Users", "New", "Plans", "2+", "3+", "Avg Mbr", "Msgs", "Active"].map((h) => (
-                    <th key={h} style={thStyle}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {stats.weekly_data.map((row) => (
-                  <tr key={row.week_number} style={{ borderBottom: '1px solid var(--border)' }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-elevated)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                  >
-                    <td style={{ padding: '8px 16px 8px 0', fontWeight: 500, color: 'var(--parchment)' }}>Wk {row.week_number}</td>
-                    <td style={{ padding: '8px 16px 8px 0', color: 'var(--parchment-dim)', whiteSpace: 'nowrap' }}>
-                      {new Date(row.week_end).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                    </td>
-                    <td style={{ padding: '8px 16px 8px 0', fontWeight: 700, color: 'var(--terracotta)' }}>{row.total_users}</td>
-                    <td style={{ padding: '8px 16px 8px 0', fontWeight: 500, color: 'var(--success)' }}>+{row.new_users}</td>
-                    <td style={{ padding: '8px 16px 8px 0', color: 'var(--parchment-dim)' }}>{row.total_plans}</td>
-                    <td style={{ padding: '8px 16px 8px 0', fontWeight: 700, color: 'var(--terracotta)' }}>{row.plans_two_plus}</td>
-                    <td style={{ padding: '8px 16px 8px 0', color: 'var(--parchment-dim)' }}>{row.plans_three_plus}</td>
-                    <td style={{ padding: '8px 16px 8px 0', color: 'var(--parchment-dim)' }}>{row.avg_members_per_plan}</td>
-                    <td style={{ padding: '8px 16px 8px 0', color: 'var(--parchment-dim)' }}>{row.total_messages}</td>
-                    <td style={{ padding: '8px 16px 8px 0', color: 'var(--parchment-dim)' }}>{row.active_plans}</td>
+      {stats.weekly_data && stats.weekly_data.length > 0 && (() => {
+        const wd = stats.weekly_data;
+        const weeks = wd.map((row, i) => {
+          const prev = i > 0 ? wd[i - 1] : null;
+          return {
+            ...row,
+            new_plans: prev ? row.total_plans - prev.total_plans : row.total_plans,
+            new_2plus: prev ? row.plans_two_plus - prev.plans_two_plus : row.plans_two_plus,
+            new_3plus: prev ? row.plans_three_plus - prev.plans_three_plus : row.plans_three_plus,
+            new_msgs: prev ? row.total_messages - prev.total_messages : row.total_messages,
+          };
+        });
+        const last = wd[wd.length - 1];
+        return (
+          <Card title="Weekly Data" action={<span style={{ fontSize: '11px', color: 'var(--parchment-muted)' }}>Per-week numbers, not cumulative</span>}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)' }}>
+                    {["Wk", "Ending", "New Users", "Plans Created", "w/ 2+", "w/ 3+", "Avg Mbr", "Messages", "Active"].map((h) => (
+                      <th key={h} style={thStyle}>{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <InfoBox>
-            <strong>Source:</strong> weekly_snapshots table, populated every Sunday by the capture_weekly_snapshot() cron job. Week 1 = Jan 12, 2026 (launch week).<br />
-            <strong>Columns:</strong> Users = cumulative total. New = signups that week. Plans = cumulative published. 2+ / 3+ = plans with that many members. Avg Mbr = average members per published plan. Msgs = cumulative user messages. Active = non-draft plans created that week.
-          </InfoBox>
-        </Card>
-      )}
+                </thead>
+                <tbody>
+                  {weeks.map((row) => (
+                    <tr key={row.week_number} style={{ borderBottom: '1px solid var(--border)' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-elevated)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      <td style={{ padding: '8px 16px 8px 0', fontWeight: 500, color: 'var(--parchment)' }}>Wk {row.week_number}</td>
+                      <td style={{ padding: '8px 16px 8px 0', color: 'var(--parchment-dim)', whiteSpace: 'nowrap' }}>
+                        {new Date(row.week_end).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </td>
+                      <td style={{ padding: '8px 16px 8px 0', fontWeight: 600, color: 'var(--success)' }}>+{row.new_users}</td>
+                      <td style={{ padding: '8px 16px 8px 0', fontWeight: 600, color: 'var(--terracotta)' }}>+{row.new_plans}</td>
+                      <td style={{ padding: '8px 16px 8px 0', color: 'var(--parchment-dim)' }}>+{row.new_2plus}</td>
+                      <td style={{ padding: '8px 16px 8px 0', color: 'var(--parchment-dim)' }}>+{row.new_3plus}</td>
+                      <td style={{ padding: '8px 16px 8px 0', color: 'var(--parchment-dim)' }}>{row.avg_members_per_plan}</td>
+                      <td style={{ padding: '8px 16px 8px 0', color: 'var(--parchment-dim)' }}>+{row.new_msgs}</td>
+                      <td style={{ padding: '8px 16px 8px 0', color: 'var(--parchment-dim)' }}>{row.active_plans}</td>
+                    </tr>
+                  ))}
+                  {/* Totals row */}
+                  <tr style={{ borderTop: '2px solid var(--border)', background: 'var(--bg-elevated)' }}>
+                    <td style={{ padding: '10px 16px 10px 0', fontWeight: 700, color: 'var(--parchment)' }} colSpan={2}>Total ({wd.length} weeks)</td>
+                    <td style={{ padding: '10px 16px 10px 0', fontWeight: 700, color: 'var(--success)' }}>{last.total_users}</td>
+                    <td style={{ padding: '10px 16px 10px 0', fontWeight: 700, color: 'var(--terracotta)' }}>{last.total_plans}</td>
+                    <td style={{ padding: '10px 16px 10px 0', fontWeight: 700, color: 'var(--parchment-dim)' }}>{last.plans_two_plus}</td>
+                    <td style={{ padding: '10px 16px 10px 0', fontWeight: 700, color: 'var(--parchment-dim)' }}>{last.plans_three_plus}</td>
+                    <td style={{ padding: '10px 16px 10px 0', fontWeight: 700, color: 'var(--parchment-dim)' }}>{last.avg_members_per_plan}</td>
+                    <td style={{ padding: '10px 16px 10px 0', fontWeight: 700, color: 'var(--parchment-dim)' }}>{last.total_messages}</td>
+                    <td style={{ padding: '10px 16px 10px 0', fontWeight: 700, color: 'var(--parchment-dim)' }}>{last.active_plans}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <InfoBox>
+              <strong>Source:</strong> weekly_snapshots table, populated every Sunday by the capture_weekly_snapshot() cron job. Week 1 = Jan 12, 2026 (launch week).<br />
+              <strong>All numbers are per-week deltas</strong> (how many that week), not cumulative. The totals row at the bottom shows the running total as of the latest snapshot.<br />
+              <strong>Columns:</strong> New Users = signups that week. Plans Created = new published plans. w/ 2+ / 3+ = new plans reaching that member count. Avg Mbr = avg members per plan (snapshot, not delta). Messages = new messages that week. Active = non-draft plans created that week.
+            </InfoBox>
+          </Card>
+        );
+      })()}
 
       {/* Referral Sources */}
       <Card title="How did you hear about us?">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', columnGap: '24px', rowGap: '4px' }}>
-          {(stats.signups_by_source || []).map((r) => (
-            <div key={r.source} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
-              <span style={{ fontSize: '13px', color: 'var(--parchment)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: '8px' }}>{r.source}</span>
-              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--terracotta)', flexShrink: 0 }}>{r.count}</span>
-            </div>
-          ))}
-        </div>
+        <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)' }}>
+              <th style={thStyle}>Source</th>
+              <th style={{ ...thStyle, textAlign: 'right', width: '80px' }}>Count</th>
+              <th style={{ ...thStyle, textAlign: 'right', width: '80px' }}>%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(stats.signups_by_source || []).map((r) => (
+              <tr key={r.source} style={{ borderBottom: '1px solid var(--border)' }}>
+                <td style={{ padding: '8px 16px 8px 0', color: 'var(--parchment)', maxWidth: '400px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.source}</td>
+                <td style={{ padding: '8px 0', fontWeight: 700, color: 'var(--terracotta)', textAlign: 'right', width: '80px' }}>{r.count}</td>
+                <td style={{ padding: '8px 0', color: 'var(--parchment-muted)', textAlign: 'right', width: '80px' }}>
+                  {stats.signups_by_source ? Math.round(100 * r.count / stats.signups_by_source.reduce((s, x) => s + x.count, 0)) : 0}%
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
         <InfoBox>
           <strong>Source:</strong> profiles.referral_source column. Set during onboarding when the user answers &quot;How did you hear about us?&quot; Grouped by exact string match. &quot;other: ...&quot; entries are free-text responses. Only shown where referral_source IS NOT NULL and not empty.
         </InfoBox>
