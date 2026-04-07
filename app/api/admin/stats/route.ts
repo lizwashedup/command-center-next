@@ -23,15 +23,16 @@ export async function GET() {
   const ptDateStr = now.toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" }); // "YYYY-MM-DD"
   const ptWall = new Date(now.toLocaleString("en-US", { timeZone: "America/Los_Angeles" }));
   const ptOffsetMs = now.getTime() - ptWall.getTime(); // ms PT is behind UTC (e.g. 7h for PDT)
-  const dayAgo = new Date(new Date(ptDateStr + "T00:00:00Z").getTime() + ptOffsetMs);
-  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const monthAgo = new Date(now.getTime() - 28 * 24 * 60 * 60 * 1000);
+  const ptMidnightMs = new Date(ptDateStr + "T00:00:00Z").getTime() + ptOffsetMs;
+  const dayAgo = new Date(ptMidnightMs);
+  const weekAgo = new Date(ptMidnightMs - 7 * 24 * 60 * 60 * 1000);
+  const monthAgo = new Date(ptMidnightMs - 28 * 24 * 60 * 60 * 1000);
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   const oneDayAgoMs = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000);
   const thirtyOneDaysAgo = new Date(now.getTime() - 31 * 24 * 60 * 60 * 1000);
   const thirtySevenDaysAgo = new Date(now.getTime() - 37 * 24 * 60 * 60 * 1000);
-  const twoMonthsAgo = new Date(now.getTime() - 56 * 24 * 60 * 60 * 1000);
+  const twoMonthsAgo = new Date(ptMidnightMs - 56 * 24 * 60 * 60 * 1000);
   const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
