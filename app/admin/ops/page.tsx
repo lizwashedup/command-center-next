@@ -6,6 +6,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import Card from "@/components/ui/Card";
 import InlineStat from "@/components/ui/InlineStat";
 import SectionLabel from "@/components/ui/SectionLabel";
+import InfoBox from "@/components/ui/InfoBox";
 
 interface Stats {
   total_users: number;
@@ -64,6 +65,14 @@ const thStyle: React.CSSProperties = {
   textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--parchment-muted)', whiteSpace: 'nowrap',
 };
 
+const noteStyle: React.CSSProperties = {
+  fontSize: '10px', color: 'var(--parchment-dim)', lineHeight: 1.4, marginTop: '4px',
+};
+
+function Note({ children }: { children: React.ReactNode }) {
+  return <div style={noteStyle}>{children}</div>;
+}
+
 export default function OpsDashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -111,10 +120,10 @@ export default function OpsDashboardPage() {
   const d30Pct = stats.d30_eligible > 0 ? Math.round(100 * stats.d30_retained / stats.d30_eligible) : 0;
 
   const funnelSteps = [
-    { label: "Total Signups", value: stats.total_users, pct: 100 },
-    { label: "Activated", value: stats.activated_users, pct: activationPct },
-    { label: "Engaged MAU", value: stats.engaged_mau, pct: mauPct },
-    { label: "Joined a Plan", value: stats.total_joiners, pct: planJoinPct },
+    { label: "Total Signups", value: stats.total_users, pct: 100, note: "COUNT(*) FROM profiles. Every account ever created." },
+    { label: "Activated", value: stats.activated_users, pct: activationPct, note: "profiles WHERE onboarding_status = 'complete'. Finished name, gender, photo, vibes." },
+    { label: "Engaged MAU", value: stats.engaged_mau, pct: mauPct, note: "Unique users who sent a message, joined a plan, OR created a plan in the last 28 days. Joined to activated profiles only." },
+    { label: "Joined a Plan", value: stats.total_joiners, pct: planJoinPct, note: "COUNT(DISTINCT user_id) FROM event_members WHERE status = 'joined'. All-time, any plan." },
   ];
   const funnelColors = ['var(--terracotta)', 'var(--success)', '#1565C0', '#9C27B0'];
 
@@ -175,6 +184,7 @@ export default function OpsDashboardPage() {
               <div style={{ height: '10px', background: 'var(--bg-elevated)', borderRadius: '20px', overflow: 'hidden' }}>
                 <div style={{ height: '100%', borderRadius: '20px', width: `${step.pct}%`, backgroundColor: funnelColors[i], opacity: 0.85 }} />
               </div>
+              <Note>{step.note}</Note>
             </div>
           ))}
         </div>
@@ -185,29 +195,41 @@ export default function OpsDashboardPage() {
           <div style={{ borderRadius: '14px', padding: '16px', background: 'rgba(198,40,40,0.06)', border: '1px solid rgba(198,40,40,0.15)' }}>
             <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '28px', fontWeight: 700, color: 'var(--error)' }}>{stats.stuck_never_started}</div>
             <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--error)' }}>Never started</div>
+            <Note>onboarding_status != &apos;complete&apos; AND first_name_display IS NULL AND gender IS NULL AND profile_photo_url IS NULL. Signed up but never entered any info.</Note>
           </div>
           <div style={{ borderRadius: '14px', padding: '16px', background: 'rgba(232,154,32,0.08)', border: '1px solid rgba(232,154,32,0.2)' }}>
             <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '28px', fontWeight: 700, color: 'var(--warning)' }}>{stats.stuck_at_photo}</div>
             <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--warning)' }}>Stopped before photo</div>
+            <Note>onboarding_status != &apos;complete&apos; AND first_name_display IS NOT NULL AND profile_photo_url IS NULL. Entered name/gender but didn&apos;t upload a photo.</Note>
           </div>
           <div style={{ borderRadius: '14px', padding: '16px', background: 'rgba(46,125,50,0.06)', border: '1px solid rgba(46,125,50,0.15)' }}>
             <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '28px', fontWeight: 700, color: 'var(--success)' }}>{stats.stuck_almost_done}</div>
             <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--success)' }}>Almost there</div>
+            <Note>onboarding_status != &apos;complete&apos; AND profile_photo_url IS NOT NULL. Has a photo but didn&apos;t finish the flow (vibes step).</Note>
           </div>
         </div>
 
         <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
-          {[
-            { label: 'Has Photo', value: stats.has_photo },
-            { label: 'Has Bio', value: stats.has_bio },
-            { label: 'SMS Enabled', value: stats.sms_enabled },
-          ].map((item) => (
-            <div key={item.label} style={{ flex: 1, borderRadius: '14px', padding: '12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', textAlign: 'center' }}>
-              <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '20px', fontWeight: 700, color: 'var(--parchment)' }}>{item.value}</div>
-              <div style={{ fontSize: '11px', color: 'var(--parchment-muted)' }}>{item.label}</div>
-            </div>
-          ))}
+          <div style={{ flex: 1, borderRadius: '14px', padding: '12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', textAlign: 'center' }}>
+            <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '20px', fontWeight: 700, color: 'var(--parchment)' }}>{stats.has_photo}</div>
+            <div style={{ fontSize: '11px', color: 'var(--parchment-muted)' }}>Has Photo</div>
+            <Note>profile_photo_url IS NOT NULL. All users, not just activated.</Note>
+          </div>
+          <div style={{ flex: 1, borderRadius: '14px', padding: '12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', textAlign: 'center' }}>
+            <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '20px', fontWeight: 700, color: 'var(--parchment)' }}>{stats.has_bio}</div>
+            <div style={{ fontSize: '11px', color: 'var(--parchment-muted)' }}>Has Bio</div>
+            <Note>bio IS NOT NULL AND bio != &apos;&apos;. All users.</Note>
+          </div>
+          <div style={{ flex: 1, borderRadius: '14px', padding: '12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', textAlign: 'center' }}>
+            <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '20px', fontWeight: 700, color: 'var(--parchment)' }}>{stats.sms_enabled}</div>
+            <div style={{ fontSize: '11px', color: 'var(--parchment-muted)' }}>SMS Enabled</div>
+            <Note>phone_number IS NOT NULL AND phone_verified = true.</Note>
+          </div>
         </div>
+
+        <InfoBox>
+          <strong>Data source:</strong> All funnel numbers come from the profiles table via the get_command_center_stats() RPC. Percentages use the row above as denominator. Engaged MAU uses a UNION of messages, event_members, and events tables — only counting activated profiles.
+        </InfoBox>
       </Card>
 
       {/* Stickiness */}
@@ -219,6 +241,16 @@ export default function OpsDashboardPage() {
           <InlineStat label="DAU / MAU" value={`${stats.dau_mau_ratio}%`} sub="Daily stickiness" />
           <InlineStat label="WAU / MAU" value={`${stats.wau_mau_ratio}%`} sub="Weekly stickiness" highlight="blue" />
         </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', marginTop: '4px' }}>
+          <Note>Activated users with last_active_at since PT midnight today.</Note>
+          <Note>Engaged users (messaged/joined/created) in last 7 days. Same definition as MAU but 7-day window.</Note>
+          <Note>UNION of: message senders + plan joiners + plan creators in 28d, filtered to activated profiles.</Note>
+          <Note>DAU / Engaged MAU × 100. a16z benchmark: &gt;25% is good.</Note>
+          <Note>WAU / Engaged MAU × 100. a16z benchmark: &gt;40% is great. Ours: {stats.wau_mau_ratio}%.</Note>
+        </div>
+        <InfoBox>
+          <strong>Why &quot;Engaged MAU&quot; not just &quot;MAU&quot;:</strong> Standard MAU counts anyone who opened the app. For an IRL social app, app opens are meaningless — what matters is whether users messaged, joined a plan, or created a plan. This is a stricter definition that gives a more honest picture. DAU still uses last_active_at (any app open) because that&apos;s the standard daily metric.
+        </InfoBox>
       </Card>
 
       {/* Chat Engagement */}
@@ -228,6 +260,12 @@ export default function OpsDashboardPage() {
           <InlineStat label="Plans with Chat" value={stats.published_plans > 0 ? `${Math.round(100 * stats.chat_plans_count / stats.published_plans)}%` : "0%"} sub={`${stats.chat_plans_count} of ${stats.published_plans}`} highlight="green" />
           <InlineStat label="Users Who Chatted" value={stats.users_who_chatted} sub={`${stats.activated_users > 0 ? Math.round(100 * stats.users_who_chatted / stats.activated_users) : 0}% of activated`} />
           <InlineStat label="Msgs / Plan" value={stats.avg_msgs_per_plan} />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginTop: '4px' }}>
+          <Note>COUNT(*) FROM messages WHERE message_type = &apos;user&apos;. Excludes system messages (joins, location shares).</Note>
+          <Note>COUNT(DISTINCT event_id) from user messages / total published plans (status != &apos;draft&apos;).</Note>
+          <Note>COUNT(DISTINCT user_id) from user messages. Percentage uses activated users as denominator.</Note>
+          <Note>Total user messages / plans that have at least 1 message. Average chat depth per active plan.</Note>
         </div>
       </Card>
 
@@ -241,26 +279,30 @@ export default function OpsDashboardPage() {
                 <th style={thStyle}>WashedUp</th>
                 <th style={thStyle}>a16z Good</th>
                 <th style={thStyle}>a16z Great</th>
+                <th style={{ ...thStyle, fontWeight: 400, fontStyle: 'italic' }}>How We Calculate</th>
               </tr>
             </thead>
             <tbody>
               {[
-                { metric: 'WAU / MAU', value: `${stats.wau_mau_ratio}%`, good: '25%', great: '40%+' },
-                { metric: 'D7 Retention', value: `${d7Pct}%`, good: '15%', great: '25%+' },
-                { metric: 'D30 Retention', value: `${d30Pct}%`, good: '10%', great: '20%+' },
-                { metric: 'MoM Signup Growth', value: `${stats.new_7d > 0 ? '+' : ''}active`, good: '15%', great: '30%+' },
-                { metric: 'Creator Retention', value: `${stats.creator_retention_rate}%`, good: '20%', great: '40%+' },
+                { metric: 'WAU / MAU', value: `${stats.wau_mau_ratio}%`, good: '25%', great: '40%+', how: 'Engaged WAU / Engaged MAU. Both use messaged/joined/created definition.' },
+                { metric: 'D7 Retention', value: stats.d7_eligible >= 30 ? `${d7Pct}%` : 'Collecting...', good: '15%', great: '25%+', how: 'Classic retention. Session on days 6-8 after signup. Post-March-30 cohort only. Accurate by ~April 13.' },
+                { metric: 'D30 Retention', value: stats.d30_eligible >= 30 ? `${d30Pct}%` : 'Collecting...', good: '10%', great: '20%+', how: 'Classic retention. Session on days 29-31 after signup. Post-March-30 cohort only. Accurate by ~April 29.' },
+                { metric: 'Creator Retention', value: `${stats.creator_retention_rate}%`, good: '20%', great: '40%+', how: 'Creators with 2+ published plans / total creators. Supply-side retention.' },
               ].map((row) => (
                 <tr key={row.metric} style={{ borderBottom: '1px solid var(--border)' }}>
                   <td style={{ padding: '10px 16px 10px 0', fontWeight: 500, color: 'var(--parchment)' }}>{row.metric}</td>
                   <td style={{ padding: '10px 16px 10px 0', fontWeight: 700, color: 'var(--terracotta)' }}>{row.value}</td>
                   <td style={{ padding: '10px 16px 10px 0', color: 'var(--parchment-dim)' }}>{row.good}</td>
                   <td style={{ padding: '10px 16px 10px 0', color: 'var(--success)' }}>{row.great}</td>
+                  <td style={{ padding: '10px 16px 10px 0', fontSize: '11px', color: 'var(--parchment-dim)', maxWidth: '280px' }}>{row.how}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        <InfoBox>
+          <strong>Source:</strong> a16z benchmarks from &quot;16 Startup Metrics&quot; (Andreessen Horowitz). Retention benchmarks from AppsFlyer 2025 App Retention Report. Our retention uses session-based classic/unbounded measurement (industry standard). D7 and D30 will show real numbers once enough post-March-30 users reach those windows.
+        </InfoBox>
       </Card>
 
       {/* Weekly Data Table */}
@@ -298,6 +340,10 @@ export default function OpsDashboardPage() {
               </tbody>
             </table>
           </div>
+          <InfoBox>
+            <strong>Source:</strong> weekly_snapshots table, populated every Sunday by the capture_weekly_snapshot() cron job. Week 1 = Jan 12, 2026 (launch week).<br />
+            <strong>Columns:</strong> Users = cumulative total. New = signups that week. Plans = cumulative published. 2+ / 3+ = plans with that many members. Avg Mbr = average members per published plan. Msgs = cumulative user messages. Active = non-draft plans created that week.
+          </InfoBox>
         </Card>
       )}
 
@@ -311,6 +357,9 @@ export default function OpsDashboardPage() {
             </div>
           ))}
         </div>
+        <InfoBox>
+          <strong>Source:</strong> profiles.referral_source column. Set during onboarding when the user answers &quot;How did you hear about us?&quot; Grouped by exact string match. &quot;other: ...&quot; entries are free-text responses. Only shown where referral_source IS NOT NULL and not empty.
+        </InfoBox>
       </Card>
 
       {/* Send Announcement */}
@@ -344,6 +393,7 @@ export default function OpsDashboardPage() {
             {sending ? "Sending..." : "Send Announcement"}
           </button>
         </div>
+        <Note>Recipients = profiles WHERE phone_number IS NOT NULL AND phone_verified = true. Currently {stats.sms_enabled} users.</Note>
       </Card>
     </div>
   );
