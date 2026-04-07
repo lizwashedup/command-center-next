@@ -260,28 +260,86 @@ export default function CommandCenterPage() {
       {/* ── Retention ─────────────────────────────────────────── */}
       <Card title="Retention">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-          {[
-            { label: 'D1 Retention', pct: d1Pct, retained: stats.d1_retained, eligible: stats.d1_eligible, desc: 'Opened the app on exactly day 1 after signup', bench: 'Global D1 avg: 26.5% (AppsFlyer 2025)', note: 'Classic retention. Did the user have a session on exactly the day after they signed up? Source: user_sessions table.' },
-            { label: 'D7 Retention', pct: d7Pct, retained: stats.d7_retained, eligible: stats.d7_eligible, desc: 'Opened the app on days 6–8 after signup', bench: 'Global D7 avg: 10.7% (AppsFlyer 2025)', note: 'Classic retention. Did the user have a session on day 6, 7, or 8 after signup? This is the industry-standard "D7" measurement.' },
-            { label: 'D30 Retention', pct: d30Pct, retained: stats.d30_retained, eligible: stats.d30_eligible, desc: 'Opened the app on days 29–31 after signup', bench: 'Global D30 avg: 4.2% (AppsFlyer 2025)', note: 'Classic retention. Did the user have a session on day 29, 30, or 31 after signup? Industry-standard "D30" measurement.' },
-          ].map((r) => (
-            <div key={r.label} style={{ borderRadius: '14px', padding: '20px', border: '1px solid var(--border)', background: 'var(--bg-surface)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-              <div style={{ fontSize: '11px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--parchment-muted)', marginBottom: '8px' }}>{r.label}</div>
-              <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '42px', fontWeight: 700, color: 'var(--parchment)' }}>{r.pct}%</div>
-              <div style={{ fontSize: '12px', color: 'var(--parchment-dim)', margin: '4px 0 8px' }}>{r.retained} of {r.eligible} eligible · {r.desc}</div>
-              <div style={{ height: '8px', background: 'var(--bg-elevated)', borderRadius: '20px', overflow: 'hidden' }}>
-                <div style={{ height: '100%', background: 'var(--terracotta)', borderRadius: '20px', width: `${Math.min(r.pct * 2, 100)}%`, transition: 'width 0.3s' }} />
-              </div>
-              <div style={{ fontSize: '11px', color: 'var(--parchment-muted)', fontStyle: 'italic', marginTop: '6px' }}>{r.bench}</div>
-              <div style={{ fontSize: '10px', color: 'var(--parchment-dim)', marginTop: '6px', lineHeight: 1.4, borderTop: '1px solid var(--border)', paddingTop: '6px' }}>{r.note}</div>
+          {/* D1 */}
+          <div style={{ borderRadius: '14px', padding: '20px', border: '1px solid var(--border)', background: 'var(--bg-surface)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <div style={{ fontSize: '11px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--parchment-muted)', marginBottom: '8px' }}>D1 Retention</div>
+            <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '42px', fontWeight: 700, color: 'var(--parchment)' }}>{d1Pct}%</div>
+            <div style={{ fontSize: '12px', color: 'var(--parchment-dim)', margin: '4px 0 8px' }}>{stats.d1_retained} of {stats.d1_eligible} eligible</div>
+            <div style={{ height: '8px', background: 'var(--bg-elevated)', borderRadius: '20px', overflow: 'hidden' }}>
+              <div style={{ height: '100%', background: 'var(--terracotta)', borderRadius: '20px', width: `${Math.min(d1Pct * 2, 100)}%` }} />
             </div>
-          ))}
+            <div style={{ fontSize: '11px', color: 'var(--parchment-muted)', fontStyle: 'italic', marginTop: '6px' }}>Global D1 avg: 26.5% (AppsFlyer 2025)</div>
+            <div style={{ fontSize: '10px', color: 'var(--parchment-dim)', marginTop: '6px', lineHeight: 1.4, borderTop: '1px solid var(--border)', paddingTop: '6px' }}>
+              <strong>What it measures:</strong> % of users who opened the app on exactly the day after they signed up.<br />
+              <strong>How:</strong> SELECT users WHERE user_sessions.session_date = signup_date + 1 day.<br />
+              <strong>Denominator:</strong> Only users who signed up on or after March 30, 2026 (when session tracking started) and at least 1 day ago.<br />
+              <strong>Type:</strong> Classic/unbounded retention. Industry standard (AppsFlyer, Mixpanel, Amplitude).
+            </div>
+          </div>
+
+          {/* D7 */}
+          <div style={{ borderRadius: '14px', padding: '20px', border: '1px solid var(--border)', background: 'var(--bg-surface)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <div style={{ fontSize: '11px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--parchment-muted)', marginBottom: '8px' }}>D7 Retention</div>
+            {stats.d7_eligible >= 30 ? (
+              <>
+                <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '42px', fontWeight: 700, color: 'var(--parchment)' }}>{d7Pct}%</div>
+                <div style={{ fontSize: '12px', color: 'var(--parchment-dim)', margin: '4px 0 8px' }}>{stats.d7_retained} of {stats.d7_eligible} eligible</div>
+                <div style={{ height: '8px', background: 'var(--bg-elevated)', borderRadius: '20px', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', background: 'var(--terracotta)', borderRadius: '20px', width: `${Math.min(d7Pct * 2, 100)}%` }} />
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '28px', fontWeight: 700, color: 'var(--parchment-muted)' }}>Collecting data...</div>
+                <div style={{ fontSize: '12px', color: 'var(--parchment-dim)', margin: '4px 0 8px' }}>Only {stats.d7_eligible} users have reached the D7 window. Need 30+ for a meaningful sample.</div>
+              </>
+            )}
+            <div style={{ fontSize: '11px', color: 'var(--parchment-muted)', fontStyle: 'italic', marginTop: '6px' }}>Global D7 avg: 10.7% (AppsFlyer 2025)</div>
+            <div style={{ fontSize: '10px', color: 'var(--parchment-dim)', marginTop: '6px', lineHeight: 1.4, borderTop: '1px solid var(--border)', paddingTop: '6px' }}>
+              <strong>What it measures:</strong> % of users who opened the app on day 6, 7, or 8 after signup.<br />
+              <strong>How:</strong> SELECT users WHERE user_sessions.session_date BETWEEN signup_date + 6 AND signup_date + 8.<br />
+              <strong>Denominator:</strong> Only users who signed up on or after March 30 and at least 8 days ago.<br />
+              <strong>Type:</strong> Classic/unbounded retention. This is the standard &quot;D7&quot; that investors reference.<br />
+              <strong>Accurate by:</strong> ~April 13 (when enough post-tracking users reach the D7 window).
+            </div>
+          </div>
+
+          {/* D30 */}
+          <div style={{ borderRadius: '14px', padding: '20px', border: '1px solid var(--border)', background: 'var(--bg-surface)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <div style={{ fontSize: '11px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--parchment-muted)', marginBottom: '8px' }}>D30 Retention</div>
+            {stats.d30_eligible >= 30 ? (
+              <>
+                <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '42px', fontWeight: 700, color: 'var(--parchment)' }}>{d30Pct}%</div>
+                <div style={{ fontSize: '12px', color: 'var(--parchment-dim)', margin: '4px 0 8px' }}>{stats.d30_retained} of {stats.d30_eligible} eligible</div>
+                <div style={{ height: '8px', background: 'var(--bg-elevated)', borderRadius: '20px', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', background: 'var(--terracotta)', borderRadius: '20px', width: `${Math.min(d30Pct * 2, 100)}%` }} />
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '28px', fontWeight: 700, color: 'var(--parchment-muted)' }}>Collecting data...</div>
+                <div style={{ fontSize: '12px', color: 'var(--parchment-dim)', margin: '4px 0 8px' }}>No users have reached the D30 window yet. First data arrives ~April 29.</div>
+              </>
+            )}
+            <div style={{ fontSize: '11px', color: 'var(--parchment-muted)', fontStyle: 'italic', marginTop: '6px' }}>Global D30 avg: 4.2% (AppsFlyer 2025)</div>
+            <div style={{ fontSize: '10px', color: 'var(--parchment-dim)', marginTop: '6px', lineHeight: 1.4, borderTop: '1px solid var(--border)', paddingTop: '6px' }}>
+              <strong>What it measures:</strong> % of users who opened the app on day 29, 30, or 31 after signup.<br />
+              <strong>How:</strong> SELECT users WHERE user_sessions.session_date BETWEEN signup_date + 29 AND signup_date + 31.<br />
+              <strong>Denominator:</strong> Only users who signed up on or after March 30 and at least 31 days ago.<br />
+              <strong>Type:</strong> Classic/unbounded retention. Industry-standard &quot;D30&quot; measurement.<br />
+              <strong>Accurate by:</strong> ~April 29 (when first post-tracking users reach the D30 window).
+            </div>
+          </div>
         </div>
         <InfoBox>
-          <span style={{ fontWeight: 600, color: 'var(--parchment)' }}>Why these numbers are currently low: </span>
-          Session tracking (user_sessions table) was added on March 30, 2026. Most users in the denominator signed up before that date and have no session records for their early days — they show as &quot;not retained&quot; even if they were active. As new post-March-30 users age into each window, the numbers will become accurate.
-          D1 is accurate now for recent signups. D7 becomes fully accurate ~April 13. D30 becomes fully accurate ~May 9.
-          These are classic/unbounded retention — &quot;did the user open the app on that specific day?&quot; — which is the industry standard used by AppsFlyer, Mixpanel, and Amplitude.
+          <span style={{ fontWeight: 600, color: 'var(--parchment)' }}>How retention works here: </span><br /><br />
+          <strong>Measurement type:</strong> Classic retention (also called &quot;unbounded&quot; or &quot;Nth day&quot;). Did the user open the app on that specific day after signup? This is the industry standard used by AppsFlyer, Mixpanel, Amplitude, and what investors mean when they say &quot;D7 retention.&quot;<br /><br />
+          <strong>Data source:</strong> user_sessions table. One row per user per day (PT timezone). Created by a database trigger that fires whenever a user&apos;s last_active_at changes.<br /><br />
+          <strong>Why the denominator is small:</strong> The session tracking trigger was added on March 30, 2026. We only count users who signed up AFTER that date, because older users don&apos;t have session records for their early days. This means the sample size is small right now but every number is accurate — no inflated denominators, no asterisks.<br /><br />
+          <strong>When each metric becomes statistically meaningful:</strong><br />
+          &bull; D1 — Accurate now. {stats.d1_eligible} users in the cohort.<br />
+          &bull; D7 — Accurate by ~April 13. Currently {stats.d7_eligible} users have reached the window.<br />
+          &bull; D30 — Accurate by ~April 29. Currently {stats.d30_eligible} users have reached the window.
         </InfoBox>
       </Card>
 
