@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import PageHeader from "@/components/layout/PageHeader";
+import Card from "@/components/ui/Card";
 
 type Plan = {
   id: string;
@@ -18,100 +20,103 @@ type Plan = {
   creator_name: string;
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  forming: "bg-[#E3F2FD] text-[#1565C0]",
-  active: "bg-[#E8F5E9] text-[#2E7D32]",
-  full: "bg-[#FFF3E0] text-[#E65100]",
-  completed: "bg-[#F0EBE3] text-[#666]",
-  cancelled: "bg-[#FFEBEE] text-[#C62828]",
-  draft: "bg-[#F5F3F0] text-[#999]",
+const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
+  forming: { bg: 'rgba(21,101,192,0.1)', color: '#1565C0' },
+  active: { bg: 'rgba(46,125,50,0.1)', color: 'var(--success)' },
+  full: { bg: 'rgba(232,154,32,0.12)', color: 'var(--warning)' },
+  completed: { bg: 'rgba(155,139,122,0.15)', color: 'var(--parchment-muted)' },
+  cancelled: { bg: 'rgba(198,40,40,0.1)', color: 'var(--error)' },
+  draft: { bg: 'var(--bg-elevated)', color: 'var(--parchment-dim)' },
+};
+
+const thStyle: React.CSSProperties = {
+  padding: '10px 16px',
+  textAlign: 'left',
+  fontSize: '11px',
+  fontWeight: 500,
+  textTransform: 'uppercase',
+  letterSpacing: '0.06em',
+  color: 'var(--parchment-muted)',
+  background: 'var(--bg-elevated)',
+};
+
+const inputStyle: React.CSSProperties = {
+  background: 'var(--bg-input)',
+  border: '1px solid var(--border)',
+  borderRadius: '10px',
+  padding: '8px 14px',
+  fontSize: '13px',
+  color: 'var(--parchment)',
+  outline: 'none',
+  fontFamily: 'DM Sans, sans-serif',
+  width: '288px',
 };
 
 function PlanTable({ plans }: { plans: Plan[] }) {
   if (plans.length === 0) {
-    return <p className="text-sm text-[#999] py-4 px-4">No plans in this section.</p>;
+    return <p style={{ fontSize: '13px', color: 'var(--parchment-muted)', padding: '16px' }}>No plans in this section.</p>;
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+    <div style={{ overflowX: 'auto' }}>
+      <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
         <thead>
-          <tr className="border-b border-[#E8E3DC] text-left bg-[#FBF9F6]">
-            <th className="py-3 px-4 text-[#999] font-medium text-xs">Plan</th>
-            <th className="py-3 px-4 text-[#999] font-medium text-xs">Creator</th>
-            <th className="py-3 px-4 text-[#999] font-medium text-xs">Status</th>
-            <th className="py-3 px-4 text-[#999] font-medium text-xs">Members</th>
-            <th className="py-3 px-4 text-[#999] font-medium text-xs">Vibe</th>
-            <th className="py-3 px-4 text-[#999] font-medium text-xs">Date</th>
-            <th className="py-3 px-4 text-[#999] font-medium text-xs">Created</th>
+          <tr style={{ borderBottom: '1px solid var(--border)' }}>
+            <th style={thStyle}>Plan</th>
+            <th style={thStyle}>Creator</th>
+            <th style={thStyle}>Status</th>
+            <th style={thStyle}>Members</th>
+            <th style={thStyle}>Vibe</th>
+            <th style={thStyle}>Date</th>
+            <th style={thStyle}>Created</th>
           </tr>
         </thead>
         <tbody>
           {plans.map((p) => (
-            <tr key={p.id} className="border-b border-[#F0EBE3] hover:bg-[#FBF9F6]">
-              <td className="py-3 px-4">
-                <div className="min-w-0">
-                  <p className="font-medium text-[#1E1E1E] truncate max-w-[250px]">{p.title}</p>
+            <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-elevated)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+            >
+              <td style={{ padding: '10px 16px' }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 500, color: 'var(--parchment)', maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</div>
                   {p.location_text && (
-                    <p className="text-[10px] text-[#999] truncate max-w-[250px]">{p.location_text}</p>
+                    <div style={{ fontSize: '10px', color: 'var(--parchment-muted)', maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.location_text}</div>
                   )}
                 </div>
               </td>
-              <td className="py-3 px-4 text-[#666]">{p.creator_name}</td>
-              <td className="py-3 px-4">
-                <span
-                  className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full ${
-                    STATUS_COLORS[p.status] || "bg-[#F0EBE3] text-[#666]"
-                  }`}
-                >
+              <td style={{ padding: '10px 16px', color: 'var(--parchment-dim)' }}>{p.creator_name}</td>
+              <td style={{ padding: '10px 16px' }}>
+                <span style={{
+                  display: 'inline-flex',
+                  fontSize: '10px',
+                  fontWeight: 500,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  padding: '3px 10px',
+                  borderRadius: '20px',
+                  ...(STATUS_STYLES[p.status] || STATUS_STYLES.draft),
+                }}>
                   {p.status}
                 </span>
               </td>
-              <td className="py-3 px-4">
-                <span className="font-bold text-[#D97746]">{p.member_count}</span>
-                <span className="text-[#999]">/{(p.max_invites ?? 6) + 1}</span>
+              <td style={{ padding: '10px 16px' }}>
+                <span style={{ fontWeight: 700, color: 'var(--terracotta)' }}>{p.member_count}</span>
+                <span style={{ color: 'var(--parchment-muted)' }}>/{(p.max_invites ?? 6) + 1}</span>
               </td>
-              <td className="py-3 px-4 text-[#666] capitalize">{p.primary_vibe || "—"}</td>
-              <td className="py-3 px-4 text-[#666]">
+              <td style={{ padding: '10px 16px', color: 'var(--parchment-dim)', textTransform: 'capitalize' }}>{p.primary_vibe || "—"}</td>
+              <td style={{ padding: '10px 16px', color: 'var(--parchment-dim)' }}>
                 {p.start_time
-                  ? new Date(p.start_time).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })
+                  ? new Date(p.start_time).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
                   : "—"}
               </td>
-              <td className="py-3 px-4 text-[#666]">
-                {new Date(p.created_at).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                })}
+              <td style={{ padding: '10px 16px', color: 'var(--parchment-dim)' }}>
+                {new Date(p.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
               </td>
             </tr>
           ))}
         </tbody>
       </table>
-    </div>
-  );
-}
-
-function SectionHeader({
-  title,
-  count,
-  color,
-  dot,
-}: {
-  title: string;
-  count: number;
-  color: string;
-  dot: string;
-}) {
-  return (
-    <div className="flex items-center gap-2 mb-3">
-      <span className={`w-2 h-2 rounded-full ${dot}`} />
-      <h2 className={`text-base font-bold ${color}`}>{title}</h2>
-      <span className="text-sm font-medium text-[#999]">({count})</span>
     </div>
   );
 }
@@ -167,66 +172,90 @@ export default function AdminPlansPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#D97746] border-t-transparent" />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
+        <div style={{
+          width: 32, height: 32,
+          border: '2px solid var(--terracotta)',
+          borderTopColor: 'transparent',
+          borderRadius: '50%',
+          animation: 'spin 0.8s linear infinite',
+        }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-[1400px] mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-[#1E1E1E]">Plans</h1>
-        <span className="text-sm text-[#999]">{plans.length} total</span>
+    <div>
+      <PageHeader title="Plans" subtitle={`${plans.length} total`} />
+
+      <div style={{ marginBottom: '24px' }}>
+        <input
+          type="text"
+          placeholder="Search by title, creator, or location..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={inputStyle}
+        />
       </div>
 
-      <input
-        type="text"
-        placeholder="Search by title, creator, or location..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="border border-[#E8E3DC] rounded-lg px-3 py-2 text-sm w-72 focus:outline-none focus:ring-2 focus:ring-[#D97746]/30 focus:border-[#D97746] bg-white"
-      />
-
       {/* Live & Upcoming */}
-      <div className="bg-white rounded-2xl border border-[#E8E3DC] overflow-hidden">
-        <div className="px-4 pt-4 pb-2">
-          <SectionHeader
-            title="Live & Upcoming"
-            count={live.length}
-            color="text-[#1E1E1E]"
-            dot="bg-[#2E7D32]"
-          />
-        </div>
-        <PlanTable plans={live} />
+      <div style={{ marginBottom: '24px' }}>
+        <Card style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 16px 8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--success)' }} />
+            <span style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--terracotta)' }}>
+              Live & Upcoming
+            </span>
+            <span style={{ fontSize: '11px', color: 'var(--parchment-muted)' }}>({live.length})</span>
+          </div>
+          <PlanTable plans={live} />
+        </Card>
       </div>
 
       {/* Drafts */}
-      <div className="bg-white rounded-2xl border border-[#E8E3DC] overflow-hidden">
-        <div className="px-4 pt-4 pb-2">
-          <SectionHeader
-            title="Drafts"
-            count={drafts.length}
-            color="text-[#666]"
-            dot="bg-[#999]"
-          />
-        </div>
-        <PlanTable plans={drafts} />
+      <div style={{ marginBottom: '24px' }}>
+        <Card style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 16px 8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--parchment-muted)' }} />
+            <span style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--parchment-dim)' }}>
+              Drafts
+            </span>
+            <span style={{ fontSize: '11px', color: 'var(--parchment-muted)' }}>({drafts.length})</span>
+          </div>
+          <PlanTable plans={drafts} />
+        </Card>
       </div>
 
       {/* Past (collapsed by default) */}
-      <div className="bg-white rounded-2xl border border-[#E8E3DC] overflow-hidden">
+      <Card style={{ padding: 0, overflow: 'hidden' }}>
         <button
           onClick={() => setPastExpanded((v) => !v)}
-          className="w-full px-4 pt-4 pb-4 flex items-center gap-2 text-left hover:bg-[#FBF9F6] transition-colors"
+          style={{
+            width: '100%',
+            padding: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            textAlign: 'left',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            fontFamily: 'DM Sans, sans-serif',
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-elevated)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
         >
-          <span className="w-2 h-2 rounded-full bg-[#E8E3DC]" />
-          <span className="text-base font-bold text-[#999]">Past</span>
-          <span className="text-sm font-medium text-[#bbb]">({past.length})</span>
-          <span className="ml-auto text-xs text-[#bbb]">{pastExpanded ? "▲ hide" : "▼ show"}</span>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--border)' }} />
+          <span style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--parchment-muted)' }}>
+            Past
+          </span>
+          <span style={{ fontSize: '11px', color: 'var(--parchment-muted)' }}>({past.length})</span>
+          <span style={{ marginLeft: 'auto', fontSize: '11px', color: 'var(--parchment-muted)' }}>{pastExpanded ? "▲ hide" : "▼ show"}</span>
         </button>
         {pastExpanded && <PlanTable plans={past} />}
-      </div>
+      </Card>
     </div>
   );
 }

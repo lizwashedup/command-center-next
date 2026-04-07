@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
+import PageHeader from "@/components/layout/PageHeader";
+import Card from "@/components/ui/Card";
 
 type User = {
   id: string;
@@ -16,11 +18,58 @@ type User = {
   phone_verified: boolean | null;
 };
 
+type FlaggedUser = {
+  id: string;
+  first_name_display: string | null;
+  handle: string | null;
+  email: string | null;
+  created_at: string;
+  last_active_at: string | null;
+  bio: string | null;
+  phone_number: string | null;
+  profile_photo_url: string | null;
+  last_sign_in_at: string | null;
+  plans_joined: number;
+  messages_sent: number;
+  score_never_returned: number;
+  score_no_phone: number;
+  score_no_bio: number;
+  score_rapid_join: number;
+  score_active_engagement: number;
+  suspicion_score: number;
+};
+
 type Filter = "all" | "complete" | "incomplete" | "has_photo" | "no_photo" | "active_7d";
+type Tab = "all" | "botwatch";
+
+const inputStyle: React.CSSProperties = {
+  background: 'var(--bg-input)',
+  border: '1px solid var(--border)',
+  borderRadius: '10px',
+  padding: '8px 14px',
+  fontSize: '13px',
+  color: 'var(--parchment)',
+  outline: 'none',
+  fontFamily: 'DM Sans, sans-serif',
+};
+
+const thStyle: React.CSSProperties = {
+  padding: '10px 16px',
+  textAlign: 'left',
+  fontSize: '11px',
+  fontWeight: 500,
+  textTransform: 'uppercase',
+  letterSpacing: '0.06em',
+  color: 'var(--parchment-muted)',
+  background: 'var(--bg-elevated)',
+};
 
 export default function AdminUsersPage() {
+  const [tab, setTab] = useState<Tab>("all");
   const [users, setUsers] = useState<User[]>([]);
+  const [flaggedUsers, setFlaggedUsers] = useState<FlaggedUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [flaggedLoading, setFlaggedLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [sortBy, setSortBy] = useState<"created_at" | "last_active_at">("created_at");
@@ -37,6 +86,7 @@ export default function AdminUsersPage() {
       });
       if (res.ok) {
         setUsers((prev) => prev.filter((u) => u.id !== userId));
+        setFlaggedUsers((prev) => prev.filter((u) => u.id !== userId));
       } else {
         const data = await res.json();
         alert(data.error || "Failed to delete user");
@@ -55,6 +105,12 @@ export default function AdminUsersPage() {
       .then((d) => setUsers(d.users ?? []))
       .catch(console.error)
       .finally(() => setLoading(false));
+
+    fetch("/api/admin/users/flagged")
+      .then((r) => r.json())
+      .then((d) => setFlaggedUsers(d.users ?? []))
+      .catch(console.error)
+      .finally(() => setFlaggedLoading(false));
   }, []);
 
   const filtered = useMemo(() => {
@@ -99,160 +155,383 @@ export default function AdminUsersPage() {
     return list;
   }, [users, search, filter, sortBy]);
 
-  if (loading) {
+  const isLoading = tab === "all" ? loading : flaggedLoading;
+
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#D97746] border-t-transparent" />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
+        <div style={{
+          width: 32, height: 32,
+          border: '2px solid var(--terracotta)',
+          borderTopColor: 'transparent',
+          borderRadius: '50%',
+          animation: 'spin 0.8s linear infinite',
+        }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-[1400px] mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-[#1E1E1E]">Users ({users.length})</h1>
-        <span className="text-xs text-[#999]">Showing {filtered.length} results</span>
+    <div>
+      <PageHeader
+        title="Users"
+        subtitle={tab === "all" ? `${users.length} total` : `${flaggedUsers.length} flagged`}
+      />
+
+      {/* Tab Bar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '24px', borderBottom: '1px solid var(--border)' }}>
+        <button
+          onClick={() => setTab("all")}
+          style={{
+            padding: '10px 16px',
+            fontSize: '13px',
+            fontWeight: 500,
+            color: tab === "all" ? 'var(--terracotta)' : 'var(--parchment-muted)',
+            background: 'none',
+            border: 'none',
+            borderBottom: tab === "all" ? '2px solid var(--terracotta)' : '2px solid transparent',
+            cursor: 'pointer',
+            transition: 'all 0.15s',
+            fontFamily: 'DM Sans, sans-serif',
+          }}
+        >
+          All Users
+        </button>
+        <button
+          onClick={() => setTab("botwatch")}
+          style={{
+            padding: '10px 16px',
+            fontSize: '13px',
+            fontWeight: 500,
+            color: tab === "botwatch" ? 'var(--terracotta)' : 'var(--parchment-muted)',
+            background: 'none',
+            border: 'none',
+            borderBottom: tab === "botwatch" ? '2px solid var(--terracotta)' : '2px solid transparent',
+            cursor: 'pointer',
+            transition: 'all 0.15s',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontFamily: 'DM Sans, sans-serif',
+          }}
+        >
+          Bot Watch
+          {flaggedUsers.length > 0 && (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: '20px',
+              height: '20px',
+              padding: '0 6px',
+              fontSize: '11px',
+              fontWeight: 700,
+              color: 'white',
+              background: 'var(--error)',
+              borderRadius: '20px',
+            }}>
+              {flaggedUsers.length}
+            </span>
+          )}
+        </button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 mb-4">
-        <input
-          type="text"
-          placeholder="Search name, ID, or referral source..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="border border-[#E8E3DC] rounded-lg px-3 py-2 text-sm w-72 focus:outline-none focus:ring-2 focus:ring-[#D97746]/30 focus:border-[#D97746] bg-white"
-        />
-        <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value as Filter)}
-          className="border border-[#E8E3DC] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#D97746]/30"
-        >
-          <option value="all">All Users</option>
-          <option value="complete">Onboarding Complete</option>
-          <option value="incomplete">Incomplete Onboarding</option>
-          <option value="has_photo">Has Photo</option>
-          <option value="no_photo">No Photo</option>
-          <option value="active_7d">Active (Last 7 Days)</option>
-        </select>
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as "created_at" | "last_active_at")}
-          className="border border-[#E8E3DC] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#D97746]/30"
-        >
-          <option value="created_at">Sort: Newest First</option>
-          <option value="last_active_at">Sort: Recently Active</option>
-        </select>
-      </div>
+      {tab === "all" ? (
+        <>
+          {/* Filters */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+            <input
+              type="text"
+              placeholder="Search name, ID, or referral source..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ ...inputStyle, width: '288px' }}
+            />
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value as Filter)}
+              style={inputStyle}
+            >
+              <option value="all">All Users</option>
+              <option value="complete">Onboarding Complete</option>
+              <option value="incomplete">Incomplete Onboarding</option>
+              <option value="has_photo">Has Photo</option>
+              <option value="no_photo">No Photo</option>
+              <option value="active_7d">Active (Last 7 Days)</option>
+            </select>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as "created_at" | "last_active_at")}
+              style={inputStyle}
+            >
+              <option value="created_at">Sort: Newest First</option>
+              <option value="last_active_at">Sort: Recently Active</option>
+            </select>
+            <span style={{ fontSize: '11px', color: 'var(--parchment-muted)', marginLeft: 'auto' }}>
+              Showing {filtered.length} results
+            </span>
+          </div>
 
-      <div className="bg-white rounded-2xl border border-[#E8E3DC] overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[#E8E3DC] text-left bg-[#FBF9F6]">
-                <th className="py-3 px-4 text-[#999] font-medium text-xs">User</th>
-                <th className="py-3 px-4 text-[#999] font-medium text-xs">Gender</th>
-                <th className="py-3 px-4 text-[#999] font-medium text-xs">Status</th>
-                <th className="py-3 px-4 text-[#999] font-medium text-xs">Signed Up</th>
-                <th className="py-3 px-4 text-[#999] font-medium text-xs">Last Active</th>
-                <th className="py-3 px-4 text-[#999] font-medium text-xs">Source</th>
-                <th className="py-3 px-4 text-[#999] font-medium text-xs">SMS</th>
-                <th className="py-3 px-4 text-[#999] font-medium text-xs w-20"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((u) => (
-                <tr key={u.id} className="border-b border-[#F0EBE3] hover:bg-[#FBF9F6]">
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-3">
+          {/* Users Table */}
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                    <th style={thStyle}>User</th>
+                    <th style={thStyle}>Gender</th>
+                    <th style={thStyle}>Status</th>
+                    <th style={thStyle}>Signed Up</th>
+                    <th style={thStyle}>Last Active</th>
+                    <th style={thStyle}>Source</th>
+                    <th style={thStyle}>SMS</th>
+                    <th style={{ ...thStyle, width: '80px' }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((u) => (
+                    <tr key={u.id} style={{ borderBottom: '1px solid var(--border)' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-elevated)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      <td style={{ padding: '10px 16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          {u.profile_photo_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={u.profile_photo_url} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                          ) : (
+                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--parchment-muted)', fontSize: '11px', fontWeight: 700, flexShrink: 0 }}>
+                              {u.first_name_display?.[0]?.toUpperCase() || "?"}
+                            </div>
+                          )}
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontWeight: 500, color: 'var(--parchment)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {u.first_name_display || "No name"}
+                            </div>
+                            <div style={{ fontSize: '10px', color: 'var(--parchment-muted)' }}>{u.id.slice(0, 8)}...</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: '10px 16px', color: 'var(--parchment-dim)', textTransform: 'capitalize' }}>{u.gender || "—"}</td>
+                      <td style={{ padding: '10px 16px' }}>
+                        <span style={{
+                          display: 'inline-flex',
+                          fontSize: '10px',
+                          fontWeight: 500,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.06em',
+                          padding: '3px 10px',
+                          borderRadius: '20px',
+                          background: u.onboarding_status === "complete" ? 'rgba(46,125,50,0.1)' : 'rgba(232,154,32,0.12)',
+                          color: u.onboarding_status === "complete" ? 'var(--success)' : 'var(--warning)',
+                        }}>
+                          {u.onboarding_status === "complete" ? "Complete" : "Incomplete"}
+                        </span>
+                      </td>
+                      <td style={{ padding: '10px 16px', color: 'var(--parchment-dim)' }}>
+                        {new Date(u.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      </td>
+                      <td style={{ padding: '10px 16px', color: 'var(--parchment-dim)' }}>
+                        {u.last_active_at ? new Date(u.last_active_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}
+                      </td>
+                      <td style={{ padding: '10px 16px', color: 'var(--parchment-dim)', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {u.referral_source || "—"}
+                      </td>
+                      <td style={{ padding: '10px 16px' }}>
+                        {u.phone_number && u.phone_verified ? (
+                          <span style={{ color: 'var(--success)' }}>✓</span>
+                        ) : (
+                          <span style={{ color: 'var(--parchment-muted)' }}>—</span>
+                        )}
+                      </td>
+                      <td style={{ padding: '10px 16px' }}>
+                        {confirmId === u.id ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <button
+                              onClick={() => handleDelete(u.id)}
+                              disabled={deletingId === u.id}
+                              style={{
+                                fontSize: '11px', fontWeight: 700, color: 'white',
+                                background: 'var(--error)', padding: '4px 10px',
+                                borderRadius: '24px', border: 'none', cursor: 'pointer',
+                                opacity: deletingId === u.id ? 0.5 : 1,
+                              }}
+                            >
+                              {deletingId === u.id ? "..." : "Yes"}
+                            </button>
+                            <button
+                              onClick={() => setConfirmId(null)}
+                              style={{
+                                fontSize: '11px', fontWeight: 500, color: 'var(--parchment-dim)',
+                                padding: '4px 8px', borderRadius: '24px',
+                                border: 'none', background: 'none', cursor: 'pointer',
+                              }}
+                            >
+                              No
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmId(u.id)}
+                            style={{
+                              fontSize: '11px', fontWeight: 500, color: 'var(--error)',
+                              padding: '4px 10px', borderRadius: '24px',
+                              border: 'none', background: 'rgba(198,40,40,0.08)',
+                              cursor: 'pointer', transition: 'background 0.15s',
+                            }}
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </>
+      ) : (
+        <>
+          {/* Bot Watch Tab */}
+          {flaggedUsers.length === 0 ? (
+            <Card style={{ padding: '48px 24px', textAlign: 'center' }}>
+              <div style={{
+                width: 48, height: 48, borderRadius: '50%',
+                background: 'rgba(46,125,50,0.1)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 12px',
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+              <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '20px', fontWeight: 700, color: 'var(--parchment)', marginBottom: '4px' }}>
+                No suspicious accounts detected
+              </div>
+              <div style={{ fontSize: '13px', color: 'var(--parchment-muted)' }}>
+                All clear — no accounts currently meet the flagging threshold.
+              </div>
+            </Card>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {flaggedUsers.map((u) => (
+                <Card key={u.id} style={{ padding: '20px 24px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
+                    {/* Left: Avatar + Info */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', minWidth: 0, flex: 1 }}>
                       {u.profile_photo_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={u.profile_photo_url}
-                          alt=""
-                          className="w-8 h-8 rounded-full object-cover shrink-0"
-                        />
+                        <img src={u.profile_photo_url} alt="" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
                       ) : (
-                        <div className="w-8 h-8 rounded-full bg-[#F0EBE3] flex items-center justify-center text-[#999] text-xs font-bold shrink-0">
+                        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--parchment-muted)', fontSize: '14px', fontWeight: 700, flexShrink: 0 }}>
                           {u.first_name_display?.[0]?.toUpperCase() || "?"}
                         </div>
                       )}
-                      <div className="min-w-0">
-                        <p className="font-medium text-[#1E1E1E] truncate">
-                          {u.first_name_display || "No name"}
-                        </p>
-                        <p className="text-[10px] text-[#999] truncate">{u.id.slice(0, 8)}...</p>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                          <span style={{ fontWeight: 500, color: 'var(--parchment)' }}>
+                            {u.first_name_display || "No name"}
+                          </span>
+                          {u.handle && (
+                            <span style={{ fontSize: '12px', color: 'var(--parchment-muted)' }}>@{u.handle}</span>
+                          )}
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center',
+                            padding: '2px 8px', fontSize: '11px', fontWeight: 700,
+                            color: 'white', background: 'var(--terracotta)',
+                            borderRadius: '20px',
+                          }}>
+                            {u.suspicion_score} pts
+                          </span>
+                        </div>
+
+                        {u.email && (
+                          <div style={{ fontSize: '12px', color: 'var(--parchment-muted)', marginBottom: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
+                        )}
+
+                        {/* Signal Chips */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+                          {u.score_never_returned > 0 && (
+                            <span style={{ display: 'inline-flex', fontSize: '10px', fontWeight: 500, padding: '3px 10px', borderRadius: '20px', background: 'rgba(198,40,40,0.1)', color: 'var(--error)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                              Never returned +3
+                            </span>
+                          )}
+                          {u.score_rapid_join > 0 && (
+                            <span style={{ display: 'inline-flex', fontSize: '10px', fontWeight: 500, padding: '3px 10px', borderRadius: '20px', background: 'rgba(198,40,40,0.1)', color: 'var(--error)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                              Rapid joins +3
+                            </span>
+                          )}
+                          {u.score_no_phone > 0 && (
+                            <span style={{ display: 'inline-flex', fontSize: '10px', fontWeight: 500, padding: '3px 10px', borderRadius: '20px', background: 'rgba(232,154,32,0.12)', color: 'var(--warning)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                              No phone +1
+                            </span>
+                          )}
+                          {u.score_no_bio > 0 && (
+                            <span style={{ display: 'inline-flex', fontSize: '10px', fontWeight: 500, padding: '3px 10px', borderRadius: '20px', background: 'rgba(232,154,32,0.12)', color: 'var(--warning)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                              No bio +1
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Stats Row */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '11px', color: 'var(--parchment-muted)' }}>
+                          <span>Joined {new Date(u.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                          <span>{u.plans_joined} plan{u.plans_joined !== 1 ? "s" : ""} joined</span>
+                          <span>{u.messages_sent} message{u.messages_sent !== 1 ? "s" : ""} sent</span>
+                        </div>
                       </div>
                     </div>
-                  </td>
-                  <td className="py-3 px-4 text-[#666] capitalize">{u.gender || "—"}</td>
-                  <td className="py-3 px-4">
-                    <span
-                      className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full ${
-                        u.onboarding_status === "complete"
-                          ? "bg-[#E8F5E9] text-[#2E7D32]"
-                          : "bg-[#FFF3E0] text-[#E65100]"
-                      }`}
-                    >
-                      {u.onboarding_status === "complete" ? "Complete" : "Incomplete"}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-[#666]">
-                    {new Date(u.created_at).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </td>
-                  <td className="py-3 px-4 text-[#666]">
-                    {u.last_active_at
-                      ? new Date(u.last_active_at).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        })
-                      : "—"}
-                  </td>
-                  <td className="py-3 px-4 text-[#666] truncate max-w-[120px]">
-                    {u.referral_source || "—"}
-                  </td>
-                  <td className="py-3 px-4">
-                    {u.phone_number && u.phone_verified ? (
-                      <span className="text-[#2E7D32]">✓</span>
-                    ) : (
-                      <span className="text-[#999]">—</span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4">
-                    {confirmId === u.id ? (
-                      <div className="flex items-center gap-1.5">
+
+                    {/* Right: Delete & Ban */}
+                    <div style={{ flexShrink: 0 }}>
+                      {confirmId === u.id ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <button
+                            onClick={() => handleDelete(u.id)}
+                            disabled={deletingId === u.id}
+                            style={{
+                              fontSize: '11px', fontWeight: 700, color: 'white',
+                              background: 'var(--error)', padding: '6px 14px',
+                              borderRadius: '24px', border: 'none', cursor: 'pointer',
+                              opacity: deletingId === u.id ? 0.5 : 1,
+                            }}
+                          >
+                            {deletingId === u.id ? "..." : "Confirm"}
+                          </button>
+                          <button
+                            onClick={() => setConfirmId(null)}
+                            style={{
+                              fontSize: '11px', fontWeight: 500, color: 'var(--parchment-dim)',
+                              padding: '6px 10px', borderRadius: '24px',
+                              border: 'none', background: 'none', cursor: 'pointer',
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
                         <button
-                          onClick={() => handleDelete(u.id)}
-                          disabled={deletingId === u.id}
-                          className="text-xs font-bold text-white bg-[#C62828] px-2.5 py-1 rounded-md hover:bg-[#B71C1C] disabled:opacity-50 transition-colors"
+                          onClick={() => setConfirmId(u.id)}
+                          style={{
+                            fontSize: '11px', fontWeight: 600, color: 'white',
+                            background: 'var(--error)', padding: '6px 14px',
+                            borderRadius: '24px', border: 'none', cursor: 'pointer',
+                            transition: 'opacity 0.15s',
+                          }}
                         >
-                          {deletingId === u.id ? "..." : "Yes"}
+                          Delete & Ban
                         </button>
-                        <button
-                          onClick={() => setConfirmId(null)}
-                          className="text-xs font-medium text-[#666] px-2 py-1 rounded-md hover:bg-[#F0EBE3] transition-colors"
-                        >
-                          No
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setConfirmId(u.id)}
-                        className="text-xs font-medium text-[#C62828] px-2.5 py-1 rounded-md hover:bg-[#FFEBEE] transition-colors"
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </td>
-                </tr>
+                      )}
+                    </div>
+                  </div>
+                </Card>
               ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

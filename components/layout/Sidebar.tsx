@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
-const navItems = [
+const hqItems = [
   { href: '/', label: 'Command Center', icon: '⌂' },
   { href: '/growth', label: 'Growth Pipeline', icon: '↑' },
   { href: '/investors', label: 'Investor CRM', icon: '◈' },
@@ -18,11 +18,35 @@ const navItems = [
 
 const adminItems = [
   { href: '/admin', label: 'Dashboard', icon: '◎' },
+  { href: '/admin/ops', label: 'Ops Dashboard', icon: '⊞' },
   { href: '/admin/users', label: 'Users', icon: '⊹' },
   { href: '/admin/plans', label: 'Plans', icon: '▦' },
   { href: '/admin/messages', label: 'Messages', icon: '◫' },
   { href: '/admin/wtl-cities', label: 'WTL Cities', icon: '🌍' },
 ]
+
+const linkStyle = (isActive: boolean) => ({
+  display: 'flex' as const,
+  alignItems: 'center' as const,
+  gap: '10px',
+  padding: '9px 12px',
+  borderRadius: '8px',
+  textDecoration: 'none' as const,
+  fontSize: '13px',
+  fontWeight: isActive ? 500 : 400,
+  color: isActive ? 'var(--terracotta)' : 'var(--parchment-dim)',
+  background: isActive ? 'rgba(217,119,70,0.08)' : 'transparent',
+  borderLeft: isActive ? '3px solid var(--terracotta)' : '3px solid transparent',
+  transition: 'all 0.15s',
+})
+
+const sectionLabel = {
+  fontSize: '9px',
+  fontWeight: 600,
+  letterSpacing: '0.12em',
+  textTransform: 'uppercase' as const,
+  padding: '12px 12px 6px',
+}
 
 export default function Sidebar() {
   const pathname = usePathname()
@@ -35,6 +59,9 @@ export default function Sidebar() {
   }
 
   const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+
+  const isHqSection = !pathname.startsWith('/admin')
+  const isAdminSection = pathname.startsWith('/admin')
 
   return (
     <aside style={{
@@ -50,7 +77,7 @@ export default function Sidebar() {
       padding: '28px 0',
     }}>
       {/* Logo */}
-      <div style={{ padding: '0 24px', marginBottom: '36px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <div style={{ padding: '0 24px', marginBottom: '28px', display: 'flex', alignItems: 'center', gap: '10px' }}>
         <div style={{
           width: '36px', height: '36px',
           background: 'var(--terracotta)',
@@ -66,79 +93,59 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Nav */}
-      <nav style={{ flex: 1, padding: '0 12px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-        {navItems.map(item => {
-          const isActive = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                padding: '9px 12px',
-                borderRadius: '8px',
-                textDecoration: 'none',
-                fontSize: '13px',
-                fontWeight: isActive ? 500 : 400,
-                color: isActive ? 'var(--terracotta)' : 'var(--parchment-dim)',
-                background: isActive ? 'rgba(217,119,70,0.08)' : 'transparent',
-                borderLeft: isActive ? '3px solid var(--terracotta)' : '3px solid transparent',
-                transition: 'all 0.15s',
-              }}
-            >
-              <span style={{ fontSize: '15px', opacity: isActive ? 1 : 0.5, width: '18px', textAlign: 'center' }}>
-                {item.icon}
-              </span>
-              {item.label}
-            </Link>
-          )
-        })}
-      </nav>
+      {/* Scrollable nav area */}
+      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
 
-      {/* App Admin */}
-      <div style={{ padding: '0 12px', marginTop: '8px' }}>
-        <div style={{
-          fontSize: '9px',
-          fontWeight: 600,
-          letterSpacing: '0.1em',
-          textTransform: 'uppercase',
-          color: 'var(--parchment-muted)',
-          padding: '8px 12px 4px',
-        }}>
-          App Admin
+        {/* HQ Section */}
+        <div style={{ padding: '0 12px' }}>
+          <div style={{
+            ...sectionLabel,
+            color: isHqSection ? 'var(--terracotta)' : 'var(--parchment-muted)',
+          }}>
+            Headquarters
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            {hqItems.map(item => {
+              const isActive = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
+              return (
+                <Link key={item.href} href={item.href} style={linkStyle(isActive)}>
+                  <span style={{ fontSize: '15px', opacity: isActive ? 1 : 0.5, width: '18px', textAlign: 'center' }}>
+                    {item.icon}
+                  </span>
+                  {item.label}
+                </Link>
+              )
+            })}
+          </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          {adminItems.map(item => {
-            const isActive = item.href === '/admin' ? pathname === '/admin' : pathname.startsWith(item.href)
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  padding: '9px 12px',
-                  borderRadius: '8px',
-                  textDecoration: 'none',
-                  fontSize: '13px',
-                  fontWeight: isActive ? 500 : 400,
-                  color: isActive ? 'var(--terracotta)' : 'var(--parchment-dim)',
-                  background: isActive ? 'rgba(217,119,70,0.08)' : 'transparent',
-                  borderLeft: isActive ? '3px solid var(--terracotta)' : '3px solid transparent',
-                  transition: 'all 0.15s',
-                }}
-              >
-                <span style={{ fontSize: '15px', opacity: isActive ? 1 : 0.5, width: '18px', textAlign: 'center' }}>
-                  {item.icon}
-                </span>
-                {item.label}
-              </Link>
-            )
-          })}
+
+        {/* Divider */}
+        <div style={{
+          margin: '16px 24px',
+          borderTop: '1px solid var(--border)',
+        }} />
+
+        {/* App Admin Section */}
+        <div style={{ padding: '0 12px' }}>
+          <div style={{
+            ...sectionLabel,
+            color: isAdminSection ? 'var(--terracotta)' : 'var(--parchment-muted)',
+          }}>
+            App Admin
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            {adminItems.map(item => {
+              const isActive = item.href === '/admin' ? pathname === '/admin' : pathname.startsWith(item.href)
+              return (
+                <Link key={item.href} href={item.href} style={linkStyle(isActive)}>
+                  <span style={{ fontSize: '15px', opacity: isActive ? 1 : 0.5, width: '18px', textAlign: 'center' }}>
+                    {item.icon}
+                  </span>
+                  {item.label}
+                </Link>
+              )
+            })}
+          </div>
         </div>
       </div>
 

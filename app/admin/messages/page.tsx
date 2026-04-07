@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import PageHeader from "@/components/layout/PageHeader";
+import Card from "@/components/ui/Card";
 
 type Message = {
   id: string;
@@ -11,6 +13,17 @@ type Message = {
   message_type: string;
   event_title: string;
   user_name: string;
+};
+
+const inputStyle: React.CSSProperties = {
+  background: 'var(--bg-input)',
+  border: '1px solid var(--border)',
+  borderRadius: '10px',
+  padding: '8px 14px',
+  fontSize: '13px',
+  color: 'var(--parchment)',
+  outline: 'none',
+  fontFamily: 'DM Sans, sans-serif',
 };
 
 export default function AdminMessagesPage() {
@@ -64,87 +77,119 @@ export default function AdminMessagesPage() {
     return Array.from(map.values()).sort((a, b) => b.count - a.count);
   }, [messages]);
 
+  const uniquePlans = planOptions.length;
+  const uniqueUsers = useMemo(() => {
+    return new Set(messages.map((m) => m.user_id)).size;
+  }, [messages]);
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#D97746] border-t-transparent" />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
+        <div style={{
+          width: 32, height: 32,
+          border: '2px solid var(--terracotta)',
+          borderTopColor: 'transparent',
+          borderRadius: '50%',
+          animation: 'spin 0.8s linear infinite',
+        }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-[1400px] mx-auto space-y-6">
-      <h1 className="text-xl font-bold text-[#1E1E1E]">Messages ({messages.length})</h1>
+    <div>
+      <PageHeader title="Messages" subtitle={`${messages.length} total across ${uniquePlans} plans`} />
 
-      <div className="bg-white rounded-2xl border border-[#E8E3DC] p-6">
-        <h2 className="text-sm font-bold text-[#1E1E1E] mb-3">Most Active Chats</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {planStats.slice(0, 6).map((ps) => (
-            <div key={ps.title} className="flex items-center justify-between py-2 px-3 border border-[#F0EBE3] rounded-lg">
-              <p className="text-sm text-[#1E1E1E] truncate mr-2">{ps.title}</p>
-              <div className="text-right shrink-0">
-                <p className="text-sm font-bold text-[#D97746]">{ps.count}</p>
-                <p className="text-[10px] text-[#999]">msgs</p>
+      {/* Most Active Chats */}
+      <div style={{ marginBottom: '24px' }}>
+        <Card title="Most Active Chats">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+            {planStats.slice(0, 6).map((ps) => (
+              <div key={ps.title} style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '10px 14px',
+                border: '1px solid var(--border)',
+                borderRadius: '10px',
+              }}>
+                <span style={{ fontSize: '13px', color: 'var(--parchment)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '8px' }}>{ps.title}</span>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '20px', fontWeight: 700, color: 'var(--terracotta)', lineHeight: 1 }}>{ps.count}</div>
+                  <div style={{ fontSize: '10px', color: 'var(--parchment-muted)' }}>msgs</div>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </Card>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      {/* Filters */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
         <input
           type="text"
           placeholder="Search messages, users, or plans..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="border border-[#E8E3DC] rounded-lg px-3 py-2 text-sm w-72 focus:outline-none focus:ring-2 focus:ring-[#D97746]/30 focus:border-[#D97746] bg-white"
+          style={{ ...inputStyle, width: '288px' }}
         />
         <select
           value={planFilter}
           onChange={(e) => setPlanFilter(e.target.value)}
-          className="border border-[#E8E3DC] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#D97746]/30 max-w-[250px]"
+          style={{ ...inputStyle, maxWidth: '250px' }}
         >
           <option value="all">All Plans</option>
           {planOptions.map(([id, title]) => (
             <option key={id} value={id}>{title}</option>
           ))}
         </select>
+        <span style={{ fontSize: '11px', color: 'var(--parchment-muted)', marginLeft: 'auto' }}>
+          {uniqueUsers} users chatted
+        </span>
       </div>
 
-      <div className="bg-white rounded-2xl border border-[#E8E3DC] overflow-hidden">
-        <div className="divide-y divide-[#F0EBE3]">
+      {/* Message Log */}
+      <Card style={{ padding: 0, overflow: 'hidden' }}>
+        <div>
           {filtered.slice(0, 200).map((m) => (
-            <div key={m.id} className="px-4 py-3 hover:bg-[#FBF9F6]">
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-[#1E1E1E]">{m.user_name}</span>
-                  <span className="text-[10px] text-[#999]">in</span>
-                  <span className="text-xs font-medium text-[#D97746] truncate max-w-[200px]">
+            <div key={m.id} style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-elevated)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--parchment)' }}>{m.user_name}</span>
+                  <span style={{ fontSize: '10px', color: 'var(--parchment-muted)' }}>in</span>
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: 500,
+                    color: 'var(--terracotta)',
+                    maxWidth: '200px',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}>
                     {m.event_title}
                   </span>
                 </div>
-                <span className="text-[10px] text-[#999] shrink-0">
-                  {new Date(m.created_at).toLocaleString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}
+                <span style={{ fontSize: '10px', color: 'var(--parchment-muted)', flexShrink: 0 }}>
+                  {new Date(m.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                 </span>
               </div>
-              <p className="text-sm text-[#666]">{m.content || "(no content)"}</p>
+              <p style={{ fontSize: '13px', color: 'var(--parchment-dim)', margin: 0 }}>{m.content || "(no content)"}</p>
             </div>
           ))}
           {filtered.length === 0 && (
-            <div className="px-4 py-8 text-center text-sm text-[#999]">No messages found</div>
+            <div style={{ padding: '32px 16px', textAlign: 'center', fontSize: '13px', color: 'var(--parchment-muted)' }}>No messages found</div>
           )}
           {filtered.length > 200 && (
-            <div className="px-4 py-3 text-center text-xs text-[#999]">
+            <div style={{ padding: '12px 16px', textAlign: 'center', fontSize: '11px', color: 'var(--parchment-muted)' }}>
               Showing 200 of {filtered.length} messages
             </div>
           )}
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
