@@ -18,6 +18,9 @@ interface Stats {
   dau: number;
   wau_mau_ratio: number;
   dau_mau_ratio: number;
+  unengaged_wau: number;
+  unengaged_mau: number;
+  unengaged_wau_mau_ratio: number;
   plans_completed: number;
   plans_active: number;
   published_plans: number;
