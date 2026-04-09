@@ -24,6 +24,8 @@ type Message = {
   profile_photo_url: string | null;
 };
 
+type RecentMessage = Message & { event_title: string };
+
 const inputStyle: React.CSSProperties = {
   background: 'var(--bg-input)',
   border: '1px solid var(--border)',
@@ -37,17 +39,21 @@ const inputStyle: React.CSSProperties = {
 
 export default function AdminMessagesPage() {
   const [plans, setPlans] = useState<PlanChat[]>([]);
+  const [recent, setRecent] = useState<RecentMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [msgsLoading, setMsgsLoading] = useState(false);
   const [search, setSearch] = useState("");
 
-  // Fetch plan list with chat stats
+  // Fetch plan list with chat stats + most recent messages
   useEffect(() => {
     fetch("/api/admin/messages")
       .then((r) => r.json())
-      .then((d) => setPlans(d.plans ?? []))
+      .then((d) => {
+        setPlans(d.plans ?? []);
+        setRecent(d.recent ?? []);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
@@ -83,6 +89,70 @@ export default function AdminMessagesPage() {
   return (
     <div>
       <PageHeader title="Messages" subtitle={`${totalMessages} messages across ${plans.length} plans`} />
+
+      {/* Recent Messages section — separate from the plans list below */}
+      <Card style={{ padding: 0, overflow: 'hidden', marginBottom: '20px' }}>
+        <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+          <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '18px', fontWeight: 700, color: 'var(--parchment)' }}>
+            Recent Messages
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--parchment-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Latest {recent.length} across all plans
+          </div>
+        </div>
+        <div style={{ maxHeight: '280px', overflowY: 'auto' }}>
+          {recent.length === 0 ? (
+            <div style={{ padding: '24px', textAlign: 'center', fontSize: '13px', color: 'var(--parchment-muted)' }}>
+              No recent messages
+            </div>
+          ) : recent.map((m) => (
+            <button
+              key={m.id}
+              onClick={() => setSelectedPlan(m.event_id)}
+              style={{
+                width: '100%',
+                display: 'flex',
+                gap: '10px',
+                alignItems: 'flex-start',
+                padding: '10px 20px',
+                background: selectedPlan === m.event_id ? 'rgba(217,119,70,0.06)' : 'transparent',
+                border: 'none',
+                borderBottom: '1px solid var(--border)',
+                cursor: 'pointer',
+                textAlign: 'left',
+                fontFamily: 'DM Sans, sans-serif',
+                transition: 'background 0.15s',
+              }}
+            >
+              {m.profile_photo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={m.profile_photo_url} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, marginTop: '2px' }} />
+              ) : (
+                <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, color: 'var(--parchment-muted)', flexShrink: 0, marginTop: '2px' }}>
+                  {m.user_name?.[0]?.toUpperCase() || '?'}
+                </div>
+              )}
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--parchment)' }}>{m.user_name}</span>
+                  <span style={{ fontSize: '11px', color: 'var(--terracotta)', fontWeight: 500 }}>
+                    {m.event_title}
+                  </span>
+                  <span style={{ fontSize: '10px', color: 'var(--parchment-muted)', marginLeft: 'auto' }}>
+                    {new Date(m.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                  </span>
+                </div>
+                <div style={{
+                  fontSize: '13px', color: 'var(--parchment-dim)', lineHeight: 1.5, marginTop: '2px',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                  {m.content || <span style={{ fontStyle: 'italic', color: 'var(--parchment-muted)' }}>(no content)</span>}
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </Card>
 
       <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: '20px', minHeight: '60vh' }}>
         {/* Left: Plan list */}

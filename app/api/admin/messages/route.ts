@@ -41,11 +41,49 @@ export async function GET(request: Request) {
     return NextResponse.json({ messages: enriched });
   }
 
+  // Fetch most recent messages across all plans (for the "Recent Messages" section)
+  const { data: recentRaw } = await admin
+    .from("messages")
+    .select("id, event_id, user_id, content, created_at, message_type")
+    .eq("message_type", "user")
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  const recentUserIds = [...new Set((recentRaw ?? []).map((m) => m.user_id).filter(Boolean))];
+  const recentEventIds = [...new Set((recentRaw ?? []).map((m) => m.event_id).filter(Boolean))];
+
+  const recentUserMap: Record<string, { name: string; photo: string | null }> = {};
+  if (recentUserIds.length > 0) {
+    const { data: users } = await admin
+      .from("profiles")
+      .select("id, first_name_display, profile_photo_url")
+      .in("id", recentUserIds);
+    if (users) users.forEach((u) => {
+      recentUserMap[u.id] = { name: u.first_name_display || "User", photo: u.profile_photo_url };
+    });
+  }
+
+  const recentEventMap: Record<string, string> = {};
+  if (recentEventIds.length > 0) {
+    const { data: events } = await admin
+      .from("events")
+      .select("id, title")
+      .in("id", recentEventIds);
+    if (events) events.forEach((e) => { recentEventMap[e.id] = e.title; });
+  }
+
+  const recent = (recentRaw ?? []).map((m) => ({
+    ...m,
+    user_name: recentUserMap[m.user_id]?.name || "Unknown",
+    profile_photo_url: recentUserMap[m.user_id]?.photo || null,
+    event_title: recentEventMap[m.event_id] || "Unknown Plan",
+  }));
+
   // Otherwise return plan list with chat stats
   const { data: chatStats } = await admin.rpc("get_plan_chat_stats");
 
   if (chatStats) {
-    return NextResponse.json({ plans: chatStats });
+    return NextResponse.json({ plans: chatStats, recent });
   }
 
   // Fallback: compute from messages table directly
@@ -88,5 +126,5 @@ export async function GET(request: Request) {
     }))
     .sort((a, b) => b.message_count - a.message_count);
 
-  return NextResponse.json({ plans });
+  return NextResponse.json({ plans, recent });
 }
