@@ -16,6 +16,8 @@ type User = {
   referral_source: string | null;
   phone_number: string | null;
   phone_verified: boolean | null;
+  plans_created: number;
+  plans_joined: number;
 };
 
 type FlaggedUser = {
@@ -39,7 +41,7 @@ type FlaggedUser = {
   suspicion_score: number;
 };
 
-type Filter = "all" | "complete" | "incomplete" | "has_photo" | "no_photo" | "active_7d";
+type Filter = "all" | "complete" | "incomplete" | "has_photo" | "no_photo" | "active_7d" | "creators" | "joiners" | "lurking";
 type Tab = "all" | "botwatch";
 
 const inputStyle: React.CSSProperties = {
@@ -165,6 +167,15 @@ export default function AdminUsersPage() {
         list = list.filter((u) => u.last_active_at && new Date(u.last_active_at) >= week);
         break;
       }
+      case "creators":
+        list = list.filter((u) => u.plans_created > 0);
+        break;
+      case "joiners":
+        list = list.filter((u) => u.plans_created === 0 && u.plans_joined > 0);
+        break;
+      case "lurking":
+        list = list.filter((u) => u.plans_created === 0 && u.plans_joined === 0);
+        break;
     }
 
     list.sort((a, b) => {
@@ -280,6 +291,9 @@ export default function AdminUsersPage() {
               <option value="has_photo">Has Photo</option>
               <option value="no_photo">No Photo</option>
               <option value="active_7d">Active (Last 7 Days)</option>
+              <option value="creators">Creators</option>
+              <option value="joiners">Joiners Only</option>
+              <option value="lurking">Lurking</option>
             </select>
             <select
               value={sortBy}
@@ -303,6 +317,7 @@ export default function AdminUsersPage() {
                     <th style={thStyle}>User</th>
                     <th style={thStyle}>Gender</th>
                     <th style={thStyle}>Status</th>
+                    <th style={thStyle}>Activity</th>
                     <th style={thStyle}>Signed Up</th>
                     <th style={thStyle}>Last Active</th>
                     <th style={thStyle}>Source</th>
@@ -349,6 +364,52 @@ export default function AdminUsersPage() {
                         }}>
                           {u.onboarding_status === "complete" ? "Complete" : "Incomplete"}
                         </span>
+                      </td>
+                      <td style={{ padding: '10px 16px' }}>
+                        {(() => {
+                          const created = u.plans_created;
+                          const joined = u.plans_joined;
+                          let label: string;
+                          let bg: string;
+                          let color: string;
+                          if (created > 0) {
+                            label = "Creator";
+                            bg = 'rgba(217,119,70,0.12)';
+                            color = 'var(--terracotta)';
+                          } else if (joined > 0) {
+                            label = "Joiner";
+                            bg = 'rgba(46,125,50,0.1)';
+                            color = 'var(--success)';
+                          } else {
+                            label = "Lurking";
+                            bg = 'rgba(255,255,255,0.04)';
+                            color = 'var(--parchment-muted)';
+                          }
+                          return (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'flex-start' }}>
+                              <span style={{
+                                display: 'inline-flex',
+                                fontSize: '10px',
+                                fontWeight: 500,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.06em',
+                                padding: '3px 10px',
+                                borderRadius: '20px',
+                                background: bg,
+                                color,
+                              }}>
+                                {label}
+                              </span>
+                              {(created > 0 || joined > 0) && (
+                                <span style={{ fontSize: '10px', color: 'var(--parchment-muted)' }}>
+                                  {created > 0 && `${created} made`}
+                                  {created > 0 && joined > 0 && ' · '}
+                                  {joined > 0 && `${joined} joined`}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td style={{ padding: '10px 16px', color: 'var(--parchment-dim)' }}>
                         {new Date(u.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
