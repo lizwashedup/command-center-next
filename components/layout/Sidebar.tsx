@@ -21,6 +21,7 @@ const adminItems = [
   { href: '/admin/ops', label: 'Ops Dashboard', icon: '⊞' },
   { href: '/admin/users', label: 'Users', icon: '⊹' },
   { href: '/admin/plans', label: 'Plans', icon: '▦' },
+  { href: '/admin/feedback', label: 'Feedback', icon: '♡' },
   { href: '/admin/messages', label: 'Messages', icon: '◫' },
   { href: '/admin/wtl-cities', label: 'WTL Cities', icon: '🌍' },
 ]
