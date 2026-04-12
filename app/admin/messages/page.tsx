@@ -137,16 +137,13 @@ export default function AdminMessagesPage() {
             const planThread = recentCache[m.event_id] || [];
             const planLoading = recentCacheLoading[m.event_id];
             const clickedDate = new Date(m.created_at);
-            const dayStart = new Date(clickedDate); dayStart.setHours(0, 0, 0, 0);
-            const dayEnd = new Date(clickedDate); dayEnd.setHours(23, 59, 59, 999);
-            const sameDayMessages = planThread.filter((pm) => {
-              const t = new Date(pm.created_at).getTime();
-              return t >= dayStart.getTime() && t <= dayEnd.getTime();
-            });
+            const ptDayKey = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
+            const clickedDayKey = ptDayKey(clickedDate);
+            const sameDayMessages = planThread.filter((pm) => ptDayKey(new Date(pm.created_at)) === clickedDayKey);
             const showFull = !!expandFull[m.id];
             const displayedMessages = showFull ? planThread : sameDayMessages;
-            const olderCount = planThread.filter((pm) => new Date(pm.created_at).getTime() < dayStart.getTime()).length;
-            const dayLabel = clickedDate.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+            const olderCount = planThread.filter((pm) => ptDayKey(new Date(pm.created_at)) < clickedDayKey).length;
+            const dayLabel = clickedDate.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric", timeZone: "America/Los_Angeles" });
 
             return (
               <div key={m.id} style={{ borderBottom: '1px solid var(--border)' }}>
@@ -181,7 +178,7 @@ export default function AdminMessagesPage() {
                         {m.event_title}
                       </span>
                       <span style={{ fontSize: '10px', color: 'var(--parchment-muted)', marginLeft: 'auto' }}>
-                        {new Date(m.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                        {new Date(m.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" })}
                       </span>
                     </div>
                     <div style={{
@@ -241,7 +238,7 @@ export default function AdminMessagesPage() {
                                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
                                   <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--parchment)' }}>{pm.user_name}</span>
                                   <span style={{ fontSize: '10px', color: 'var(--parchment-muted)' }}>
-                                    {new Date(pm.created_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                                    {new Date(pm.created_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" })}
                                   </span>
                                 </div>
                                 <div style={{ fontSize: '12px', color: 'var(--parchment-dim)', lineHeight: 1.5, marginTop: '1px', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
@@ -353,7 +350,7 @@ export default function AdminMessagesPage() {
                     {p.event_title}
                   </div>
                   <div style={{ fontSize: '11px', color: 'var(--parchment-muted)', marginTop: '2px' }}>
-                    {new Date(p.last_message_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    {new Date(p.last_message_at).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Los_Angeles" })}
                     {' · '}{p.member_count} members
                     {' · '}<span style={{
                       fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.04em',
@@ -424,7 +421,7 @@ export default function AdminMessagesPage() {
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
                         <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--parchment)' }}>{m.user_name}</span>
                         <span style={{ fontSize: '10px', color: 'var(--parchment-muted)' }}>
-                          {new Date(m.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                          {new Date(m.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" })}
                         </span>
                       </div>
                       <div style={{ fontSize: '13px', color: 'var(--parchment-dim)', lineHeight: 1.5, marginTop: '2px' }}>

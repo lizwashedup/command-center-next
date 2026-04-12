@@ -227,7 +227,7 @@ export default function CommandCenterPage() {
             {(stats.signups_by_day || []).map((day, i) => {
               const d = new Date(day.date + "T12:00:00Z");
               const isToday = i === stats.signups_by_day.length - 1;
-              const label = isToday ? "Today" : d.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" });
+              const label = isToday ? "Today" : d.toLocaleDateString("en-US", { weekday: "short", timeZone: "America/Los_Angeles" });
               return (
                 <div key={day.date} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                   <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--terracotta)' }}>{day.count}</span>

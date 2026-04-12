@@ -51,7 +51,7 @@ const smallInput = { ...inputStyle, padding: '8px 12px', fontSize: '13px' }
 
 function formatDate(iso: string) {
   if (!iso) return '—'
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' })
 }
 
 const emptyForm = {

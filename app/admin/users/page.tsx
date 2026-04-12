@@ -412,10 +412,10 @@ export default function AdminUsersPage() {
                         })()}
                       </td>
                       <td style={{ padding: '10px 16px', color: 'var(--parchment-dim)' }}>
-                        {new Date(u.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        {new Date(u.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" })}
                       </td>
                       <td style={{ padding: '10px 16px', color: 'var(--parchment-dim)' }}>
-                        {u.last_active_at ? new Date(u.last_active_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}
+                        {u.last_active_at ? new Date(u.last_active_at).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Los_Angeles" }) : "—"}
                       </td>
                       <td style={{ padding: '10px 16px', color: 'var(--parchment-dim)', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {u.referral_source || "—"}
@@ -559,7 +559,7 @@ export default function AdminUsersPage() {
 
                         {/* Stats Row */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '11px', color: 'var(--parchment-muted)' }}>
-                          <span>Joined {new Date(u.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                          <span>Joined {new Date(u.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" })}</span>
                           <span>{u.plans_joined} plan{u.plans_joined !== 1 ? "s" : ""} joined</span>
                           <span>{u.messages_sent} message{u.messages_sent !== 1 ? "s" : ""} sent</span>
                         </div>

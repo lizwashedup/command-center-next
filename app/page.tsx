@@ -33,11 +33,11 @@ const categoryBg: Record<string, string> = {
 }
 
 function formatDate(d: Date) {
-  return d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+  return d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Los_Angeles' })
 }
 
 function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' })
 }
 
 const MOTIVATIONAL = [
@@ -229,13 +229,13 @@ export default function CommandCenterPage() {
                 lineHeight: 1,
                 marginBottom: '6px',
               }}>
-                {today.getDate()}
+                {today.toLocaleDateString('en-US', { day: 'numeric', timeZone: 'America/Los_Angeles' })}
               </div>
               <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '20px', color: 'var(--parchment)', marginBottom: '4px' }}>
-                {today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                {today.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'America/Los_Angeles' })}
               </div>
               <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--parchment-muted)', marginBottom: '24px' }}>
-                {today.toLocaleDateString('en-US', { weekday: 'long' })}
+                {today.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'America/Los_Angeles' })}
               </div>
               <div style={{
                 fontFamily: 'Cormorant Garamond, serif',

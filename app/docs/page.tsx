@@ -38,7 +38,7 @@ function countWords(text: string): number {
 }
 
 function formatUpdated(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' })
 }
 
 export default function DocsPage() {

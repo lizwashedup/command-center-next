@@ -58,6 +58,7 @@ function formatDate(iso: string | null): string {
     month: "short",
     day: "numeric",
     year: "numeric",
+    timeZone: "America/Los_Angeles",
   });
 }
 
@@ -67,6 +68,7 @@ function formatDateTime(iso: string): string {
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
+    timeZone: "America/Los_Angeles",
   });
 }
 

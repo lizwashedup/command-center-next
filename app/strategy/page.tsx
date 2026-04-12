@@ -38,7 +38,7 @@ function getWeekOf(date = new Date()) {
 
 function formatWeekOf(iso: string) {
   const d = new Date(iso + 'T00:00:00')
-  return `Week of ${d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`
+  return `Week of ${d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' })}`
 }
 
 function isCurrentWeek(weekOf: string) {

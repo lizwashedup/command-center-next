@@ -59,7 +59,7 @@ export default function Sidebar() {
     router.push('/auth/login')
   }
 
-  const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' })
 
   const isHqSection = !pathname.startsWith('/admin')
   const isAdminSection = pathname.startsWith('/admin')

@@ -143,7 +143,7 @@ function fmt(n: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)
 }
 function fmtDate(iso: string) {
-  return new Date(iso + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return new Date(iso + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles' })
 }
 function monthKey(iso: string) { return iso.slice(0, 7) }
 
@@ -464,7 +464,7 @@ export default function FinancePage() {
                 <option value="all">All Months</option>
                 {allMonths.map(m => (
                   <option key={m} value={m}>
-                    {new Date(m + '-15').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                    {new Date(m + '-15').toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'America/Los_Angeles' })}
                   </option>
                 ))}
               </select>

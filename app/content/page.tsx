@@ -44,7 +44,7 @@ const inputStyle = {
 
 function formatDate(iso: string) {
   if (!iso) return ''
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles' })
 }
 
 export default function ContentPage() {

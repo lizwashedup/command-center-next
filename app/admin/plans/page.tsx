@@ -107,11 +107,11 @@ function PlanTable({ plans }: { plans: Plan[] }) {
               <td style={{ padding: '10px 16px', color: 'var(--parchment-dim)', textTransform: 'capitalize' }}>{p.primary_vibe || "—"}</td>
               <td style={{ padding: '10px 16px', color: 'var(--parchment-dim)' }}>
                 {p.start_time
-                  ? new Date(p.start_time).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
+                  ? new Date(p.start_time).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" })
                   : "—"}
               </td>
               <td style={{ padding: '10px 16px', color: 'var(--parchment-dim)' }}>
-                {new Date(p.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                {new Date(p.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Los_Angeles" })}
               </td>
             </tr>
           ))}

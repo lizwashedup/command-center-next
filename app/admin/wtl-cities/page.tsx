@@ -156,7 +156,7 @@ export default function WtlCitiesPage() {
                   <td style={{ padding: '10px 16px 10px 0', fontWeight: 600, color: 'var(--parchment)' }}>{e.city_name}</td>
                   <td style={{ padding: '10px 16px 10px 0', color: 'var(--parchment-dim)' }}>{e.user_email || "—"}</td>
                   <td style={{ padding: '10px 0', color: 'var(--parchment-muted)', fontSize: '11px' }}>
-                    {new Date(e.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    {new Date(e.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" })}
                   </td>
                 </tr>
               ))}

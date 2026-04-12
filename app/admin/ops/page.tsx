@@ -341,7 +341,7 @@ export default function OpsDashboardPage() {
                     >
                       <td style={{ padding: '8px 16px 8px 0', fontWeight: 500, color: 'var(--parchment)' }}>Wk {row.week_number}</td>
                       <td style={{ padding: '8px 16px 8px 0', color: 'var(--parchment-dim)', whiteSpace: 'nowrap' }}>
-                        {new Date(row.week_end).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        {new Date(row.week_end).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Los_Angeles" })}
                       </td>
                       <td style={{ padding: '8px 16px 8px 0', fontWeight: 600, color: 'var(--success)' }}>+{row.new_users}</td>
                       <td style={{ padding: '8px 16px 8px 0', fontWeight: 600, color: 'var(--terracotta)' }}>+{row.new_plans}</td>
