@@ -20,14 +20,12 @@ export async function POST(request: Request) {
 
   const admin = createServiceClient(supabaseUrl, serviceKey);
 
-  const { error } = await admin.rpc("admin_delete_user_by_id", {
-    target_user_id: userId,
-  });
+  const { error } = await admin.auth.admin.deleteUser(userId);
 
   if (error) {
     console.error("[admin-delete-user] Error:", error.message);
     return NextResponse.json(
-      { error: "Failed to delete user" },
+      { error: error.message },
       { status: 500 }
     );
   }
