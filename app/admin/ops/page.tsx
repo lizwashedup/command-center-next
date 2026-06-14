@@ -16,6 +16,7 @@ interface Stats {
   engaged_mau: number;
   wau: number;
   dau: number;
+  daily_opens: number;
   wau_mau_ratio: number;
   dau_mau_ratio: number;
   unengaged_wau: number;
@@ -117,16 +118,14 @@ export default function OpsDashboardPage() {
   }
 
   const activationPct = stats.total_users > 0 ? Math.round(100 * stats.activated_users / stats.total_users) : 0;
-  const mauPct = stats.activated_users > 0 ? Math.round(100 * stats.engaged_mau / stats.activated_users) : 0;
-  const planJoinPct = stats.engaged_mau > 0 ? Math.round(100 * stats.total_joiners / stats.engaged_mau) : 0;
+  const planJoinPct = stats.activated_users > 0 ? Math.round(100 * stats.total_joiners / stats.activated_users) : 0;
   const d7Pct = stats.d7_eligible > 0 ? Math.round(100 * stats.d7_retained / stats.d7_eligible) : 0;
   const d30Pct = stats.d30_eligible > 0 ? Math.round(100 * stats.d30_retained / stats.d30_eligible) : 0;
 
   const funnelSteps = [
     { label: "Total Signups", value: stats.total_users, pct: 100, note: "COUNT(*) FROM profiles. Every account ever created." },
     { label: "Activated", value: stats.activated_users, pct: activationPct, note: "profiles WHERE onboarding_status = 'complete'. Finished name, gender, photo, vibes." },
-    { label: "Engaged MAU", value: stats.engaged_mau, pct: mauPct, note: "Unique users who sent a message, joined a plan, OR created a plan in the last 28 days. Joined to activated profiles only." },
-    { label: "Joined a Plan", value: stats.total_joiners, pct: planJoinPct, note: "COUNT(DISTINCT user_id) FROM event_members WHERE status = 'joined'. All-time, any plan." },
+    { label: "Joined a Plan", value: stats.total_joiners, pct: planJoinPct, note: "COUNT(DISTINCT user_id) FROM event_members WHERE status = 'joined'. All-time, any plan. Percentage of activated users." },
   ];
   const funnelColors = ['var(--terracotta)', 'var(--success)', '#1565C0', '#9C27B0'];
 
@@ -231,28 +230,31 @@ export default function OpsDashboardPage() {
         </div>
 
         <InfoBox>
-          <strong>Data source:</strong> All funnel numbers come from the profiles table via the get_command_center_stats() RPC. Percentages use the row above as denominator. Engaged MAU uses a UNION of messages, event_members, and events tables — only counting activated profiles.
+          <strong>Data source:</strong> All funnel numbers come from the get_command_center_stats() RPC. The funnel is all-time and monotonic: each percentage uses the row above as denominator (Activated = % of total signups, Joined a Plan = % of activated users).
         </InfoBox>
       </Card>
 
       {/* Stickiness */}
       <Card title="Stickiness & Engagement">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px' }}>
-          <InlineStat label="DAU" value={stats.dau} sub="Today (PT)" />
+          <InlineStat label="DAU (engaged)" value={stats.dau} sub="Today (PT)" />
           <InlineStat label="WAU" value={stats.wau} sub="Last 7 days" />
           <InlineStat label="Engaged MAU" value={stats.engaged_mau} sub="Messaged/joined/created (28d)" highlight="orange" />
           <InlineStat label="DAU / MAU" value={`${stats.dau_mau_ratio}%`} sub="Daily stickiness" />
           <InlineStat label="WAU / MAU" value={`${stats.wau_mau_ratio}%`} sub="Weekly stickiness" highlight="blue" />
         </div>
+        <div style={{ fontSize: '11px', color: 'var(--parchment-muted)', marginTop: '8px' }}>
+          Daily opens (reference): <strong style={{ color: 'var(--parchment)' }}>{stats.daily_opens}</strong> — activated users with any app open today (last_active_at ≥ PT midnight). Passive signal, <em>not</em> used in DAU or the DAU/MAU ratio.
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', marginTop: '4px' }}>
-          <Note>Activated users with last_active_at since PT midnight today.</Note>
+          <Note>Activated users who messaged, joined, or created a plan today (PT). Same definition as WAU/MAU, 1-day window.</Note>
           <Note>Engaged users (messaged/joined/created) in last 7 days. Same definition as MAU but 7-day window.</Note>
           <Note>UNION of: message senders + plan joiners + plan creators in 28d, filtered to activated profiles.</Note>
-          <Note>DAU / Engaged MAU × 100. a16z benchmark: &gt;25% is good.</Note>
+          <Note>DAU (engaged) / Engaged MAU × 100. a16z benchmark: &gt;25% is good.</Note>
           <Note>WAU / Engaged MAU × 100. a16z benchmark: &gt;40% is great. Ours: {stats.wau_mau_ratio}%.</Note>
         </div>
         <InfoBox>
-          <strong>Why &quot;Engaged MAU&quot; not just &quot;MAU&quot;:</strong> Standard MAU counts anyone who opened the app. For an IRL social app, app opens are meaningless — what matters is whether users messaged, joined a plan, or created a plan. This is a stricter definition that gives a more honest picture. DAU still uses last_active_at (any app open) because that&apos;s the standard daily metric.
+          <strong>Engaged definition across DAU/WAU/MAU:</strong> For an IRL social app, raw app opens are meaningless — what matters is whether users messaged, joined a plan, or created a plan. DAU, WAU, and Engaged MAU now all use this same engagement definition (just different windows: 1d / 7d / 28d), so the DAU/MAU and WAU/MAU ratios compare like-for-like. &quot;Daily opens&quot; is shown separately as the passive last_active_at reference.
         </InfoBox>
       </Card>
 
