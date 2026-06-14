@@ -44,6 +44,8 @@ interface Stats {
   d7_eligible: number;
   d30_retained: number;
   d30_eligible: number;
+  returned_after_w1: number;
+  returned_after_m1: number;
   avg_age_span: number;
   pct_plans_20yr_span: number;
   stranger_friend_pairs: number;
@@ -145,6 +147,8 @@ export default function CommandCenterPage() {
   const d1Pct = stats.d1_eligible > 0 ? Math.round(100 * stats.d1_retained / stats.d1_eligible) : 0;
   const d7Pct = stats.d7_eligible > 0 ? Math.round(100 * stats.d7_retained / stats.d7_eligible) : 0;
   const d30Pct = stats.d30_eligible > 0 ? Math.round(100 * stats.d30_retained / stats.d30_eligible) : 0;
+  const returnedW1Pct = stats.d7_eligible > 0 ? Math.round(100 * stats.returned_after_w1 / stats.d7_eligible) : 0;
+  const returnedM1Pct = stats.d30_eligible > 0 ? Math.round(100 * stats.returned_after_m1 / stats.d30_eligible) : 0;
   const jcRate = stats.joiner_to_creator_denom > 0 ? Math.round(100 * stats.joiner_to_creator_count / stats.joiner_to_creator_denom) : 0;
   const signupMax = Math.max(...(stats.signups_by_day || []).map(d => d.count), 1);
   const repeatMax = Math.max(stats.users_1_plan, stats.users_2, stats.users_3, stats.users_4, stats.users_5plus, 1);
@@ -270,10 +274,10 @@ export default function CommandCenterPage() {
             </div>
             <div style={{ fontSize: '11px', color: 'var(--parchment-muted)', fontStyle: 'italic', marginTop: '6px' }}>Global D1 avg: 26.5% (AppsFlyer 2025)</div>
             <div style={{ fontSize: '10px', color: 'var(--parchment-dim)', marginTop: '6px', lineHeight: 1.4, borderTop: '1px solid var(--border)', paddingTop: '6px' }}>
-              <strong>What it measures:</strong> % of users who opened the app on exactly the day after they signed up.<br />
-              <strong>How:</strong> SELECT users WHERE user_sessions.session_date = signup_date + 1 day.<br />
+              <strong>What it measures:</strong> % of users who returned (had a session) on day 1 or 2 after signup.<br />
+              <strong>How:</strong> SELECT users WHERE user_sessions.session_date BETWEEN signup_date + 1 AND signup_date + 2.<br />
               <strong>Denominator:</strong> Only users who signed up on or after March 30, 2026 (when session tracking started) and at least 1 day ago.<br />
-              <strong>Type:</strong> Classic/unbounded retention. Industry standard (AppsFlyer, Mixpanel, Amplitude).
+              <strong>Type:</strong> Bounded (windowed) Nth-day retention — apples-to-apples with the AppsFlyer / Mixpanel / Amplitude benchmark.
             </div>
           </div>
 
@@ -296,11 +300,10 @@ export default function CommandCenterPage() {
             )}
             <div style={{ fontSize: '11px', color: 'var(--parchment-muted)', fontStyle: 'italic', marginTop: '6px' }}>Global D7 avg: 10.7% (AppsFlyer 2025)</div>
             <div style={{ fontSize: '10px', color: 'var(--parchment-dim)', marginTop: '6px', lineHeight: 1.4, borderTop: '1px solid var(--border)', paddingTop: '6px' }}>
-              <strong>What it measures:</strong> % of users who opened the app on day 6, 7, or 8 after signup.<br />
+              <strong>What it measures:</strong> % of users who returned (had a session) on day 6, 7, or 8 after signup.<br />
               <strong>How:</strong> SELECT users WHERE user_sessions.session_date BETWEEN signup_date + 6 AND signup_date + 8.<br />
               <strong>Denominator:</strong> Only users who signed up on or after March 30 and at least 8 days ago.<br />
-              <strong>Type:</strong> Classic/unbounded retention. This is the standard &quot;D7&quot; that investors reference.<br />
-              <strong>Accurate by:</strong> ~April 13 (when enough post-tracking users reach the D7 window).
+              <strong>Type:</strong> Bounded (windowed) Nth-day retention — the standard &quot;D7&quot; that investors reference, comparable to the AppsFlyer benchmark.
             </div>
           </div>
 
@@ -323,23 +326,43 @@ export default function CommandCenterPage() {
             )}
             <div style={{ fontSize: '11px', color: 'var(--parchment-muted)', fontStyle: 'italic', marginTop: '6px' }}>Global D30 avg: 4.2% (AppsFlyer 2025)</div>
             <div style={{ fontSize: '10px', color: 'var(--parchment-dim)', marginTop: '6px', lineHeight: 1.4, borderTop: '1px solid var(--border)', paddingTop: '6px' }}>
-              <strong>What it measures:</strong> % of users who opened the app on day 29, 30, or 31 after signup.<br />
+              <strong>What it measures:</strong> % of users who returned (had a session) on day 29, 30, or 31 after signup.<br />
               <strong>How:</strong> SELECT users WHERE user_sessions.session_date BETWEEN signup_date + 29 AND signup_date + 31.<br />
               <strong>Denominator:</strong> Only users who signed up on or after March 30 and at least 31 days ago.<br />
-              <strong>Type:</strong> Classic/unbounded retention. Industry-standard &quot;D30&quot; measurement.<br />
-              <strong>Accurate by:</strong> ~April 29 (when first post-tracking users reach the D30 window).
+              <strong>Type:</strong> Bounded (windowed) Nth-day retention — industry-standard &quot;D30&quot;, comparable to the AppsFlyer benchmark.
             </div>
           </div>
         </div>
+
+        {/* Rolling engagement: came back at all after week 1 / month 1 (NOT benchmark-comparable) */}
+        <div style={{ borderRadius: '14px', padding: '16px 20px', border: '1px dashed var(--border)', background: 'var(--bg-elevated)', marginBottom: '16px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--parchment-muted)', marginBottom: '8px' }}>
+            Came back after Week 1 / Month 1 <span style={{ textTransform: 'none', fontStyle: 'italic', fontWeight: 400 }}>· engagement, not standard retention</span>
+          </div>
+          <div style={{ display: 'flex', gap: '32px' }}>
+            <div>
+              <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '32px', fontWeight: 700, color: 'var(--parchment)' }}>{returnedW1Pct}%</span>
+              <span style={{ fontSize: '12px', color: 'var(--parchment-dim)', marginLeft: '8px' }}>returned after Week 1 ({stats.returned_after_w1} of {stats.d7_eligible})</span>
+            </div>
+            <div>
+              <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '32px', fontWeight: 700, color: 'var(--parchment)' }}>{returnedM1Pct}%</span>
+              <span style={{ fontSize: '12px', color: 'var(--parchment-dim)', marginLeft: '8px' }}>returned after Month 1 ({stats.returned_after_m1} of {stats.d30_eligible})</span>
+            </div>
+          </div>
+          <div style={{ fontSize: '10px', color: 'var(--parchment-dim)', marginTop: '8px', lineHeight: 1.4 }}>
+            <strong>Rolling (cumulative):</strong> share of the cohort who had any session on or after day 7 / day 30 — i.e. came back at all after that point. Honest signal of weekly-cadence stickiness for an IRL product, but it runs much higher than the bounded D7/D30 above and is <em>not</em> comparable to the AppsFlyer benchmarks.
+          </div>
+        </div>
+
         <InfoBox>
           <span style={{ fontWeight: 600, color: 'var(--parchment)' }}>How retention works here: </span><br /><br />
-          <strong>Measurement type:</strong> Classic retention (also called &quot;unbounded&quot; or &quot;Nth day&quot;). Did the user open the app on that specific day after signup? This is the industry standard used by AppsFlyer, Mixpanel, Amplitude, and what investors mean when they say &quot;D7 retention.&quot;<br /><br />
+          <strong>Measurement type:</strong> Bounded (windowed) Nth-day retention — was the user active within a day of the day-N mark (D1 = day 1-2, D7 = days 6-8, D30 = days 29-31)? This is the apples-to-apples definition used by AppsFlyer, Mixpanel, and Amplitude, and what investors mean by &quot;D7 retention.&quot; The separate &quot;Came back after Week 1 / Month 1&quot; stat uses rolling (cumulative) retention — active on or after that day — which runs much higher and is NOT comparable to the bounded benchmarks.<br /><br />
           <strong>Data source:</strong> user_sessions table. One row per user per day (PT timezone). Created by a database trigger that fires whenever a user&apos;s last_active_at changes.<br /><br />
-          <strong>Why the denominator is small:</strong> The session tracking trigger was added on March 30, 2026. We only count users who signed up AFTER that date, because older users don&apos;t have session records for their early days. This means the sample size is small right now but every number is accurate — no inflated denominators, no asterisks.<br /><br />
-          <strong>When each metric becomes statistically meaningful:</strong><br />
-          &bull; D1 — Accurate now. {stats.d1_eligible} users in the cohort.<br />
-          &bull; D7 — Accurate by ~April 13. Currently {stats.d7_eligible} users have reached the window.<br />
-          &bull; D30 — Accurate by ~April 29. Currently {stats.d30_eligible} users have reached the window.
+          <strong>Why the denominator is the post-March-30 cohort:</strong> The session tracking trigger was added on March 30, 2026. We only count users who signed up AFTER that date, because older users don&apos;t have session records for their early days. Every number is accurate — no inflated denominators, no asterisks.<br /><br />
+          <strong>Cohort sizes (all accurate now):</strong><br />
+          &bull; D1 — {stats.d1_eligible} users eligible.<br />
+          &bull; D7 — {stats.d7_eligible} users eligible.<br />
+          &bull; D30 — {stats.d30_eligible} users eligible.
         </InfoBox>
       </Card>
 

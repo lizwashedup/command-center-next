@@ -290,8 +290,8 @@ export default function OpsDashboardPage() {
             <tbody>
               {[
                 { metric: 'WAU / MAU', value: `${stats.wau_mau_ratio}%`, good: '25%', great: '40%+', how: 'Engaged WAU / Engaged MAU. Both use messaged/joined/created definition.' },
-                { metric: 'D7 Retention', value: stats.d7_eligible >= 30 ? `${d7Pct}%` : 'Collecting...', good: '15%', great: '25%+', how: 'Classic retention. Session on days 6-8 after signup. Post-March-30 cohort only. Accurate by ~April 13.' },
-                { metric: 'D30 Retention', value: stats.d30_eligible >= 30 ? `${d30Pct}%` : 'Collecting...', good: '10%', great: '20%+', how: 'Classic retention. Session on days 29-31 after signup. Post-March-30 cohort only. Accurate by ~April 29.' },
+                { metric: 'D7 Retention', value: stats.d7_eligible >= 30 ? `${d7Pct}%` : 'Collecting...', good: '15%', great: '25%+', how: 'Bounded: active within ±1 day of day 7 (days 6-8). Post-March-30 cohort. Apples-to-apples with AppsFlyer.' },
+                { metric: 'D30 Retention', value: stats.d30_eligible >= 30 ? `${d30Pct}%` : 'Collecting...', good: '10%', great: '20%+', how: 'Bounded: active within ±1 day of day 30 (days 29-31). Post-March-30 cohort. Apples-to-apples with AppsFlyer.' },
                 { metric: 'Creator Retention', value: `${stats.creator_retention_rate}%`, good: '20%', great: '40%+', how: 'Creators with 2+ published plans / total creators. Supply-side retention.' },
               ].map((row) => (
                 <tr key={row.metric} style={{ borderBottom: '1px solid var(--border)' }}>
@@ -306,7 +306,7 @@ export default function OpsDashboardPage() {
           </table>
         </div>
         <InfoBox>
-          <strong>Source:</strong> a16z benchmarks from &quot;16 Startup Metrics&quot; (Andreessen Horowitz). Retention benchmarks from AppsFlyer 2025 App Retention Report. Our retention uses session-based classic/unbounded measurement (industry standard). D7 and D30 will show real numbers once enough post-March-30 users reach those windows.
+          <strong>Source:</strong> a16z benchmarks from &quot;16 Startup Metrics&quot; (Andreessen Horowitz). Retention benchmarks from AppsFlyer 2025 App Retention Report. Our D7/D30 here are <strong>bounded (windowed)</strong> retention — active within ±1 day of the day-N mark — which is apples-to-apples with these benchmarks. The investor dashboard also shows a separate rolling &quot;came back after Week 1 / Month 1&quot; engagement stat, which runs higher and is deliberately not compared to these bounded benchmarks. Cohort: users who activated on or after March 30 (when session tracking started).
         </InfoBox>
       </Card>
 
