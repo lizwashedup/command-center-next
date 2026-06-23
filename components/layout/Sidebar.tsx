@@ -24,6 +24,7 @@ const adminItems = [
   { href: '/admin/feedback', label: 'Feedback', icon: '♡' },
   { href: '/admin/messages', label: 'Messages', icon: '◫' },
   { href: '/admin/wtl-cities', label: 'WTL Cities', icon: '🌍' },
+  { href: '/admin/trip-waitlist', label: 'Trip Waitlist', icon: '✈' },
 ]
 
 const linkStyle = (isActive: boolean) => ({
