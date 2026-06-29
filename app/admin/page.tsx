@@ -40,12 +40,14 @@ interface Stats {
   organic_creator_rate: number;
   d1_retained: number;
   d1_eligible: number;
+  d1_returned_after: number;
   d7_retained: number;
   d7_eligible: number;
   d30_retained: number;
   d30_eligible: number;
   returned_after_w1: number;
   returned_after_m1: number;
+  retention_curve: { week: number; eligible: number; retained: number; pct: number }[];
   avg_age_span: number;
   pct_plans_20yr_span: number;
   stranger_friend_pairs: number;
@@ -95,6 +97,76 @@ function KPICard({ label, value, subtitle, benchmark, note }: {
       {note && (
         <div style={{ fontSize: '10px', color: 'var(--parchment-dim)', marginTop: '6px', lineHeight: 1.4, borderTop: '1px solid var(--border)', paddingTop: '6px' }}>{note}</div>
       )}
+    </div>
+  );
+}
+
+/* ── Weekly Retention Curve ──────────────────────────────── */
+/* The chart investors look for in IRL / low-frequency social: does the curve
+   flatten into a non-zero plateau (a retained core) rather than decay to zero?
+   Weekly (not daily) cadence is the right granularity for a hangout product. */
+function RetentionCurveChart({ data }: { data: { week: number; eligible: number; retained: number; pct: number }[] }) {
+  const pts = (data || []).filter((d) => d.eligible > 0);
+  if (pts.length < 2) {
+    return (
+      <div style={{ borderRadius: '14px', padding: '16px 20px', border: '1px dashed var(--border)', background: 'var(--bg-elevated)', marginBottom: '16px', fontSize: '12px', color: 'var(--parchment-dim)' }}>
+        Retention curve — collecting data (need at least two weekly cohorts).
+      </div>
+    );
+  }
+
+  const W = 760, H = 300, padL = 44, padR = 24, padT = 24, padB = 44;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+  const maxWeek = Math.max(...pts.map((p) => p.week));
+  const x = (week: number) => padL + (maxWeek === 0 ? 0 : (week / maxWeek) * plotW);
+  const y = (pct: number) => padT + (1 - pct / 100) * plotH;
+
+  const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${x(p.week).toFixed(1)} ${y(p.pct).toFixed(1)}`).join(' ');
+  const areaPath = `${linePath} L ${x(pts[pts.length - 1].week).toFixed(1)} ${y(0).toFixed(1)} L ${x(pts[0].week).toFixed(1)} ${y(0).toFixed(1)} Z`;
+
+  // Plateau read: average of the last 3 points' pct — the "floor" investors care about.
+  const tail = pts.slice(-3);
+  const plateau = Math.round(tail.reduce((s, p) => s + p.pct, 0) / tail.length);
+
+  return (
+    <div style={{ borderRadius: '14px', padding: '18px 20px 12px', border: '1px solid var(--border)', background: 'var(--bg-surface)', marginBottom: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '4px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--terracotta)' }}>
+          Weekly Retention Curve
+        </div>
+        <div style={{ fontSize: '12px', color: 'var(--parchment-dim)' }}>
+          Plateau ≈ <span style={{ fontWeight: 700, color: 'var(--parchment)' }}>{plateau}%</span> (weeks {tail[0].week}–{tail[tail.length - 1].week})
+        </div>
+      </div>
+
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block', overflow: 'visible' }}>
+        {/* horizontal gridlines + y labels */}
+        {[0, 25, 50, 75, 100].map((g) => (
+          <g key={g}>
+            <line x1={padL} y1={y(g)} x2={W - padR} y2={y(g)} stroke="var(--border)" strokeWidth={1} strokeDasharray={g === 0 ? '0' : '3 4'} />
+            <text x={padL - 8} y={y(g) + 4} textAnchor="end" fontSize={11} fill="var(--parchment-muted)">{g}%</text>
+          </g>
+        ))}
+
+        {/* area fill */}
+        <path d={areaPath} fill="var(--terracotta)" opacity={0.10} />
+        {/* the curve */}
+        <path d={linePath} fill="none" stroke="var(--terracotta)" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+
+        {/* points + value labels + x labels */}
+        {pts.map((p) => (
+          <g key={p.week}>
+            <circle cx={x(p.week)} cy={y(p.pct)} r={4} fill="var(--bg-surface)" stroke="var(--terracotta)" strokeWidth={2.5} />
+            <text x={x(p.week)} y={y(p.pct) - 12} textAnchor="middle" fontSize={11} fontWeight={700} fill="var(--parchment)">{p.pct}%</text>
+            <text x={x(p.week)} y={H - padB + 18} textAnchor="middle" fontSize={11} fill="var(--parchment-muted)">W{p.week}</text>
+          </g>
+        ))}
+      </svg>
+
+      <div style={{ fontSize: '10px', color: 'var(--parchment-dim)', marginTop: '4px', lineHeight: 1.45 }}>
+        <strong>What investors look for:</strong> not the headline number but the <em>shape</em> — a sharp early drop (normal) followed by the curve <strong>flattening to a non-zero plateau</strong>. A flat tail means a real retained core (the product-market-fit signal); a curve sliding to zero means leaky. Weekly cadence is the right lens for an IRL hangout product (daily would understate it). Each point = % of the cohort with ≥1 session in that week, among users old enough to have reached it; later weeks lean on smaller, earlier cohorts. Cohort: activated users since Mar 30. Auto-updates every 30s.
+      </div>
     </div>
   );
 }
@@ -149,6 +221,7 @@ export default function CommandCenterPage() {
   const d30Pct = stats.d30_eligible > 0 ? Math.round(100 * stats.d30_retained / stats.d30_eligible) : 0;
   const returnedW1Pct = stats.d7_eligible > 0 ? Math.round(100 * stats.returned_after_w1 / stats.d7_eligible) : 0;
   const returnedM1Pct = stats.d30_eligible > 0 ? Math.round(100 * stats.returned_after_m1 / stats.d30_eligible) : 0;
+  const d1UnboundedPct = stats.d1_eligible > 0 ? Math.round(100 * stats.d1_returned_after / stats.d1_eligible) : 0;
   const jcRate = stats.joiner_to_creator_denom > 0 ? Math.round(100 * stats.joiner_to_creator_count / stats.joiner_to_creator_denom) : 0;
   const signupMax = Math.max(...(stats.signups_by_day || []).map(d => d.count), 1);
   const repeatMax = Math.max(stats.users_1_plan, stats.users_2, stats.users_3, stats.users_4, stats.users_5plus, 1);
@@ -273,11 +346,17 @@ export default function CommandCenterPage() {
               <div style={{ height: '100%', background: 'var(--terracotta)', borderRadius: '20px', width: `${Math.min(d1Pct * 2, 100)}%` }} />
             </div>
             <div style={{ fontSize: '11px', color: 'var(--parchment-muted)', fontStyle: 'italic', marginTop: '6px' }}>Global D1 avg: 26.5% (AppsFlyer 2025)</div>
+            <div style={{ fontSize: '11px', color: 'var(--parchment-dim)', marginTop: '8px', padding: '8px 10px', borderRadius: '8px', background: 'var(--bg-elevated)', border: '1px dashed var(--border)' }}>
+              <span style={{ fontWeight: 700, color: 'var(--parchment)' }}>{d1UnboundedPct}%</span> unbounded
+              <span style={{ color: 'var(--parchment-muted)' }}> ({stats.d1_returned_after} of {stats.d1_eligible})</span><br />
+              <span style={{ fontSize: '10px' }}>Came back at all on day 1 or any day after — rolling retention, not benchmark-comparable.</span>
+            </div>
             <div style={{ fontSize: '10px', color: 'var(--parchment-dim)', marginTop: '6px', lineHeight: 1.4, borderTop: '1px solid var(--border)', paddingTop: '6px' }}>
-              <strong>What it measures:</strong> % of users who returned (had a session) on day 1 or 2 after signup.<br />
-              <strong>How:</strong> SELECT users WHERE user_sessions.session_date BETWEEN signup_date + 1 AND signup_date + 2.<br />
+              <strong>What it measures:</strong> % of users with a genuine return on day 1 (the next calendar day after signup).<br />
+              <strong>How:</strong> A session on signup_date + 1, with onboarding-spillover stripped. A naive &quot;session on day+1&quot; over-counts onboarding that finishes after midnight — but that can only happen for late-night signups. So we keep every daytime signup (before 9pm PT, which cannot be spillover) and, for late-night signups, only count those who also returned on day 2 or later. Both signup and session dates are Pacific.<br />
+              <strong>Why:</strong> the naive rule inflated D1 to ~56%; requiring first_return_at instead deflated it to ~10% (that field is only set ~half the time). This spillover-stripped rule is the honest middle and removed ~130 artifacts.<br />
               <strong>Denominator:</strong> Only users who signed up on or after March 30, 2026 (when session tracking started) and at least 1 day ago.<br />
-              <strong>Type:</strong> Bounded (windowed) Nth-day retention — apples-to-apples with the AppsFlyer / Mixpanel / Amplitude benchmark.
+              <strong>Type:</strong> Bounded exact-day-1 retention — apples-to-apples with the AppsFlyer / Mixpanel / Amplitude benchmark.
             </div>
           </div>
 
@@ -299,6 +378,11 @@ export default function CommandCenterPage() {
               </>
             )}
             <div style={{ fontSize: '11px', color: 'var(--parchment-muted)', fontStyle: 'italic', marginTop: '6px' }}>Global D7 avg: 10.7% (AppsFlyer 2025)</div>
+            <div style={{ fontSize: '11px', color: 'var(--parchment-dim)', marginTop: '8px', padding: '8px 10px', borderRadius: '8px', background: 'var(--bg-elevated)', border: '1px dashed var(--border)' }}>
+              <span style={{ fontWeight: 700, color: 'var(--parchment)' }}>{returnedW1Pct}%</span> unbounded
+              <span style={{ color: 'var(--parchment-muted)' }}> ({stats.returned_after_w1} of {stats.d7_eligible})</span><br />
+              <span style={{ fontSize: '10px' }}>Came back at all on or after day 7 — rolling retention, not benchmark-comparable.</span>
+            </div>
             <div style={{ fontSize: '10px', color: 'var(--parchment-dim)', marginTop: '6px', lineHeight: 1.4, borderTop: '1px solid var(--border)', paddingTop: '6px' }}>
               <strong>What it measures:</strong> % of users who returned (had a session) on day 6, 7, or 8 after signup.<br />
               <strong>How:</strong> SELECT users WHERE user_sessions.session_date BETWEEN signup_date + 6 AND signup_date + 8.<br />
@@ -325,6 +409,11 @@ export default function CommandCenterPage() {
               </>
             )}
             <div style={{ fontSize: '11px', color: 'var(--parchment-muted)', fontStyle: 'italic', marginTop: '6px' }}>Global D30 avg: 4.2% (AppsFlyer 2025)</div>
+            <div style={{ fontSize: '11px', color: 'var(--parchment-dim)', marginTop: '8px', padding: '8px 10px', borderRadius: '8px', background: 'var(--bg-elevated)', border: '1px dashed var(--border)' }}>
+              <span style={{ fontWeight: 700, color: 'var(--parchment)' }}>{returnedM1Pct}%</span> unbounded
+              <span style={{ color: 'var(--parchment-muted)' }}> ({stats.returned_after_m1} of {stats.d30_eligible})</span><br />
+              <span style={{ fontSize: '10px' }}>Came back at all on or after day 30 — rolling retention, not benchmark-comparable.</span>
+            </div>
             <div style={{ fontSize: '10px', color: 'var(--parchment-dim)', marginTop: '6px', lineHeight: 1.4, borderTop: '1px solid var(--border)', paddingTop: '6px' }}>
               <strong>What it measures:</strong> % of users who returned (had a session) on day 29, 30, or 31 after signup.<br />
               <strong>How:</strong> SELECT users WHERE user_sessions.session_date BETWEEN signup_date + 29 AND signup_date + 31.<br />
@@ -334,29 +423,12 @@ export default function CommandCenterPage() {
           </div>
         </div>
 
-        {/* Rolling engagement: came back at all after week 1 / month 1 (NOT benchmark-comparable) */}
-        <div style={{ borderRadius: '14px', padding: '16px 20px', border: '1px dashed var(--border)', background: 'var(--bg-elevated)', marginBottom: '16px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--parchment-muted)', marginBottom: '8px' }}>
-            Came back after Week 1 / Month 1 <span style={{ textTransform: 'none', fontStyle: 'italic', fontWeight: 400 }}>· engagement, not standard retention</span>
-          </div>
-          <div style={{ display: 'flex', gap: '32px' }}>
-            <div>
-              <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '32px', fontWeight: 700, color: 'var(--parchment)' }}>{returnedW1Pct}%</span>
-              <span style={{ fontSize: '12px', color: 'var(--parchment-dim)', marginLeft: '8px' }}>returned after Week 1 ({stats.returned_after_w1} of {stats.d7_eligible})</span>
-            </div>
-            <div>
-              <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '32px', fontWeight: 700, color: 'var(--parchment)' }}>{returnedM1Pct}%</span>
-              <span style={{ fontSize: '12px', color: 'var(--parchment-dim)', marginLeft: '8px' }}>returned after Month 1 ({stats.returned_after_m1} of {stats.d30_eligible})</span>
-            </div>
-          </div>
-          <div style={{ fontSize: '10px', color: 'var(--parchment-dim)', marginTop: '8px', lineHeight: 1.4 }}>
-            <strong>Rolling (cumulative):</strong> share of the cohort who had any session on or after day 7 / day 30 — i.e. came back at all after that point. Honest signal of weekly-cadence stickiness for an IRL product, but it runs much higher than the bounded D7/D30 above and is <em>not</em> comparable to the AppsFlyer benchmarks.
-          </div>
-        </div>
+        {/* Weekly retention curve — the investor "does it flatten?" chart */}
+        <RetentionCurveChart data={stats.retention_curve} />
 
         <InfoBox>
           <span style={{ fontWeight: 600, color: 'var(--parchment)' }}>How retention works here: </span><br /><br />
-          <strong>Measurement type:</strong> Bounded (windowed) Nth-day retention — was the user active within a day of the day-N mark (D1 = day 1-2, D7 = days 6-8, D30 = days 29-31)? This is the apples-to-apples definition used by AppsFlyer, Mixpanel, and Amplitude, and what investors mean by &quot;D7 retention.&quot; The separate &quot;Came back after Week 1 / Month 1&quot; stat uses rolling (cumulative) retention — active on or after that day — which runs much higher and is NOT comparable to the bounded benchmarks.<br /><br />
+          <strong>Measurement type:</strong> The headline D1 / D7 / D30 are bounded (windowed) Nth-day retention — was the user active on/around the day-N mark (D1 = next day, D7 = days 6-8, D30 = days 29-31)? Signup day and session dates are both in Pacific, so the windows line up correctly. This is the apples-to-apples definition used by AppsFlyer, Mixpanel, and Amplitude, and what investors mean by &quot;D7 retention&quot; — so we keep it as the headline. The dashed <strong>unbounded</strong> line under each card is rolling (cumulative) retention — came back at all on or after that day — which runs much higher and is NOT comparable to the bounded benchmarks; it&apos;s the more honest stickiness read for a weekly-cadence IRL product. <strong>D1 note:</strong> a naive &quot;session the next day&quot; over-counts onboarding that finishes after midnight; D1 here strips that (keeps daytime signups, requires a later return for late-night signups).<br /><br />
           <strong>Data source:</strong> user_sessions table. One row per user per day (PT timezone). Created by a database trigger that fires whenever a user&apos;s last_active_at changes.<br /><br />
           <strong>Why the denominator is the post-March-30 cohort:</strong> The session tracking trigger was added on March 30, 2026. We only count users who signed up AFTER that date, because older users don&apos;t have session records for their early days. Every number is accurate — no inflated denominators, no asterisks.<br /><br />
           <strong>Cohort sizes (all accurate now):</strong><br />
