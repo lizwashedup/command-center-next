@@ -48,6 +48,7 @@ interface Stats {
   returned_after_w1: number;
   returned_after_m1: number;
   retention_curve: { week: number; eligible: number; retained: number; pct: number }[];
+  retention_cohorts: { cohort: string; points: { week: number; eligible: number; retained: number; pct: number }[] }[];
   avg_age_span: number;
   pct_plans_20yr_span: number;
   stranger_friend_pairs: number;
@@ -166,6 +167,80 @@ function RetentionCurveChart({ data }: { data: { week: number; eligible: number;
 
       <div style={{ fontSize: '10px', color: 'var(--parchment-dim)', marginTop: '4px', lineHeight: 1.45 }}>
         <strong>What investors look for:</strong> not the headline number but the <em>shape</em> — a sharp early drop (normal) followed by the curve <strong>flattening to a non-zero plateau</strong>. A flat tail means a real retained core (the product-market-fit signal); a curve sliding to zero means leaky. Weekly cadence is the right lens for an IRL hangout product (daily would understate it). Each point = % of the cohort with ≥1 session in that week, among users old enough to have reached it; later weeks lean on smaller, earlier cohorts. Cohort: activated users since Mar 30. Auto-updates every 30s.
+      </div>
+    </div>
+  );
+}
+
+/* ── Per-Cohort Retention Curves ─────────────────────────── */
+/* One line per signup-month cohort. The strongest version of the retention
+   story: if newer cohorts sit ABOVE older ones, retention is improving as the
+   product improves. Overlapping lines = a stable, repeatable curve. */
+function CohortRetentionChart({ cohorts }: { cohorts: { cohort: string; points: { week: number; eligible: number; retained: number; pct: number }[] }[] }) {
+  const series = (cohorts || []).filter((c) => c.points && c.points.length >= 2);
+  if (series.length < 2) {
+    return (
+      <div style={{ borderRadius: '14px', padding: '16px 20px', border: '1px dashed var(--border)', background: 'var(--bg-elevated)', marginBottom: '16px', fontSize: '12px', color: 'var(--parchment-dim)' }}>
+        Per-cohort retention — collecting data (need at least two cohorts with 2+ weeks each).
+      </div>
+    );
+  }
+
+  // oldest → newest: tan → terracotta → green
+  const palette = ['#b5876b', '#c8693f', '#3f7d5a', '#7a6a9c'];
+  const W = 760, H = 300, padL = 44, padR = 24, padT = 24, padB = 44;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+  const maxWeek = Math.max(...series.flatMap((s) => s.points.map((p) => p.week)));
+  const x = (week: number) => padL + (maxWeek === 0 ? 0 : (week / maxWeek) * plotW);
+  const y = (pct: number) => padT + (1 - pct / 100) * plotH;
+
+  return (
+    <div style={{ borderRadius: '14px', padding: '18px 20px 12px', border: '1px solid var(--border)', background: 'var(--bg-surface)', marginBottom: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--terracotta)' }}>
+          Retention by Signup Cohort
+        </div>
+        <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
+          {series.map((s, i) => (
+            <div key={s.cohort} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ width: '14px', height: '3px', borderRadius: '2px', background: palette[i % palette.length], display: 'inline-block' }} />
+              <span style={{ fontSize: '12px', color: 'var(--parchment)', fontWeight: 600 }}>{s.cohort}</span>
+              <span style={{ fontSize: '11px', color: 'var(--parchment-muted)' }}>(n={s.points[0]?.eligible ?? 0})</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block', overflow: 'visible' }}>
+        {[0, 25, 50, 75, 100].map((g) => (
+          <g key={g}>
+            <line x1={padL} y1={y(g)} x2={W - padR} y2={y(g)} stroke="var(--border)" strokeWidth={1} strokeDasharray={g === 0 ? '0' : '3 4'} />
+            <text x={padL - 8} y={y(g) + 4} textAnchor="end" fontSize={11} fill="var(--parchment-muted)">{g}%</text>
+          </g>
+        ))}
+        {Array.from({ length: maxWeek + 1 }, (_, w) => (
+          <text key={w} x={x(w)} y={H - padB + 18} textAnchor="middle" fontSize={11} fill="var(--parchment-muted)">W{w}</text>
+        ))}
+
+        {series.map((s, i) => {
+          const color = palette[i % palette.length];
+          const path = s.points.map((p, j) => `${j === 0 ? 'M' : 'L'} ${x(p.week).toFixed(1)} ${y(p.pct).toFixed(1)}`).join(' ');
+          return (
+            <g key={s.cohort}>
+              <path d={path} fill="none" stroke={color} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+              {s.points.map((p) => (
+                <circle key={p.week} cx={x(p.week)} cy={y(p.pct)} r={3.5} fill="var(--bg-surface)" stroke={color} strokeWidth={2} />
+              ))}
+              {/* label the last point of each line with its cohort */}
+              <text x={x(s.points[s.points.length - 1].week) + 6} y={y(s.points[s.points.length - 1].pct) + 4} fontSize={11} fontWeight={700} fill={color}>{s.cohort}</text>
+            </g>
+          );
+        })}
+      </svg>
+
+      <div style={{ fontSize: '10px', color: 'var(--parchment-dim)', marginTop: '4px', lineHeight: 1.45 }}>
+        <strong>How to read it:</strong> each line is one signup-month cohort tracked across its own weeks since joining. <strong>Newer lines above older lines = retention improving</strong> as the product gets better (the most convincing version of this chart); lines stacked on top of each other = a stable, repeatable curve. Lines stop where the cohort runs out of elapsed weeks, and points with fewer than 40 users still eligible are dropped as too noisy — so the newest cohort is short and the older cohorts&apos; right-hand tails ride on shrinking samples. Cohort: activated users since Mar 30 (late-March folded into Apr). Auto-updates every 30s.
       </div>
     </div>
   );
@@ -425,6 +500,9 @@ export default function CommandCenterPage() {
 
         {/* Weekly retention curve — the investor "does it flatten?" chart */}
         <RetentionCurveChart data={stats.retention_curve} />
+
+        {/* Per-cohort breakout — are newer cohorts retaining better? */}
+        <CohortRetentionChart cohorts={stats.retention_cohorts} />
 
         <InfoBox>
           <span style={{ fontWeight: 600, color: 'var(--parchment)' }}>How retention works here: </span><br /><br />
