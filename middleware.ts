@@ -14,10 +14,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  const token = request.cookies.get('hq_auth')?.value
-  const expected = await getExpectedToken()
-  if (token && token === expected) {
-    return NextResponse.next()
+  if (process.env.ADMIN_PASSWORD) {
+    const token = request.cookies.get('hq_auth')?.value
+    const expected = await getExpectedToken()
+    if (token && token === expected) {
+      return NextResponse.next()
+    }
   }
 
   const loginUrl = new URL('/auth/login', request.url)

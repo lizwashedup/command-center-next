@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 
 export async function POST(request: Request) {
-  const { userId } = await request.json();
+  // .catch() alone isn't enough: a literal `null` body is valid JSON, so
+  // request.json() resolves successfully to null rather than rejecting, and
+  // destructuring userId off null throws. ?? {} covers that case too.
+  const { userId } = (await request.json().catch(() => null)) ?? {};
   if (!userId || typeof userId !== "string") {
     return NextResponse.json({ error: "userId is required" }, { status: 400 });
   }

@@ -10,7 +10,28 @@ function LoginForm() {
   const [error, setError] = useState('')
   const router = useRouter()
   const searchParams = useSearchParams()
-  const next = searchParams.get('next') || '/'
+  const rawNext = searchParams.get('next') || '/'
+  // Parse first, then compare origins: a string-prefix check (rejecting "//"
+  // etc.) runs BEFORE the browser strips tab/newline/CR characters during URL
+  // parsing, so "/\t/evil.com" passes a prefix check but still resolves to
+  // evil.com once parsed. Parsing first means we see exactly what the router's
+  // own navigation will see.
+  const next = (() => {
+    if (typeof window === 'undefined') return '/'
+    try {
+      const u = new URL(rawNext, window.location.origin)
+      if (u.origin !== window.location.origin) return '/'
+      // Collapse a leading "//" (or more) in the path down to one slash:
+      // origin can legitimately match while the path itself is protocol-
+      // relative (e.g. "https://this-site//evil.com" parses with a matching
+      // origin and pathname "//evil.com"), and router.push would then
+      // hard-navigate off-site on that pathname alone.
+      const path = u.pathname.replace(/^\/+/, '/')
+      return path + u.search + u.hash
+    } catch {
+      return '/'
+    }
+  })()
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
