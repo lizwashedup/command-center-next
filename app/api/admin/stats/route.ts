@@ -1,12 +1,9 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const supabase = await createClient();
-
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
@@ -58,8 +55,11 @@ export async function GET() {
     return allData;
   }
 
-  // Call the PT-anchored RPC for signup counts
-  const { data: ptStats, error: ptError } = await supabase.rpc(
+  // Call the PT-anchored RPC for signup counts. Uses the service-role client:
+  // the RPC itself is now restricted to service_role (2026-08-14), it has no
+  // internal auth check of its own, so it can no longer be called with the
+  // user's own session.
+  const { data: ptStats, error: ptError } = await admin.rpc(
     "get_pt_dashboard_stats"
   );
 
