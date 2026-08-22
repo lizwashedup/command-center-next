@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import PageHeader from '@/components/layout/PageHeader'
 import Button from '@/components/ui/Button'
 
@@ -54,7 +53,6 @@ export default function ContentPage() {
   const [newCard, setNewCard] = useState({ title: '', notes: '', due_date: '' })
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [editCard, setEditCard] = useState<Partial<ContentCard>>({})
-  const supabase = createClient()
 
   useEffect(() => {
     fetchCards()
@@ -63,43 +61,62 @@ export default function ContentPage() {
 
   async function fetchCards() {
     setLoading(true)
-    const { data } = await supabase.from('content_cards').select('*').order('created_at', { ascending: true })
+    const res = await fetch('/api/admin/content')
+    const { cards: data } = await res.json()
     setCards(data || [])
     setLoading(false)
   }
 
   async function createCard(cardType: string, cardColumn: string) {
     if (!newCard.title.trim()) return
-    const { data } = await supabase.from('content_cards').insert({
-      title: newCard.title.trim(),
-      card_type: cardType,
-      card_column: cardColumn,
-      notes: newCard.notes,
-      due_date: newCard.due_date || null,
-    }).select().single()
+    const res = await fetch('/api/admin/content/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: newCard.title.trim(),
+        card_type: cardType,
+        card_column: cardColumn,
+        notes: newCard.notes,
+        due_date: newCard.due_date || null,
+      }),
+    })
+    const { card: data } = await res.json()
     if (data) setCards(prev => [...prev, data])
     setNewCard({ title: '', notes: '', due_date: '' })
     setAddingTo(null)
   }
 
   async function deleteCard(id: string) {
-    await supabase.from('content_cards').delete().eq('id', id)
+    await fetch('/api/admin/content/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
     setCards(prev => prev.filter(c => c.id !== id))
     if (expandedId === id) setExpandedId(null)
   }
 
   async function moveCard(id: string, newCol: string) {
-    await supabase.from('content_cards').update({ card_column: newCol }).eq('id', id)
+    await fetch('/api/admin/content/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, card_column: newCol }),
+    })
     setCards(prev => prev.map(c => c.id === id ? { ...c, card_column: newCol } : c))
   }
 
   async function saveCard() {
     if (!editCard.id) return
-    await supabase.from('content_cards').update({
-      title: editCard.title,
-      notes: editCard.notes,
-      due_date: editCard.due_date || null,
-    }).eq('id', editCard.id)
+    await fetch('/api/admin/content/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: editCard.id,
+        title: editCard.title,
+        notes: editCard.notes,
+        due_date: editCard.due_date || null,
+      }),
+    })
     setCards(prev => prev.map(c => c.id === editCard.id ? { ...c, ...editCard } as ContentCard : c))
     setExpandedId(null)
   }

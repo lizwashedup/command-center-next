@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import PageHeader from '@/components/layout/PageHeader'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
@@ -69,7 +68,6 @@ export default function GrowthPage() {
   const [editCard, setEditCard] = useState<Partial<GrowthCard>>({})
   const [addingTo, setAddingTo] = useState<string | null>(null)
   const [newCard, setNewCard] = useState({ title: '', category: 'SEO' })
-  const supabase = createClient()
 
   useEffect(() => {
     fetchCards()
@@ -78,20 +76,24 @@ export default function GrowthPage() {
 
   async function fetchCards() {
     setLoading(true)
-    const { data } = await supabase.from('growth_cards').select('*').order('created_at', { ascending: true })
+    const res = await fetch('/api/admin/growth')
+    const { cards: data } = await res.json()
     setCards(data || [])
     setLoading(false)
   }
 
   async function createCard(status: string) {
     if (!newCard.title.trim()) return
-    const { data } = await supabase.from('growth_cards').insert({
-      title: newCard.title.trim(),
-      category: newCard.category,
-      status,
-      last_action: '',
-      next_step: '',
-    }).select().single()
+    const res = await fetch('/api/admin/growth/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: newCard.title.trim(),
+        category: newCard.category,
+        status,
+      }),
+    })
+    const { card: data } = await res.json()
     if (data) {
       setCards(prev => [...prev, data])
       setNewCard({ title: '', category: 'SEO' })
@@ -111,25 +113,38 @@ export default function GrowthPage() {
 
   async function saveCard() {
     if (!editCard.id) return
-    await supabase.from('growth_cards').update({
-      title: editCard.title,
-      category: editCard.category,
-      last_action: editCard.last_action,
-      next_step: editCard.next_step,
-      due_date: editCard.due_date,
-    }).eq('id', editCard.id)
+    await fetch('/api/admin/growth/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: editCard.id,
+        title: editCard.title,
+        category: editCard.category,
+        last_action: editCard.last_action,
+        next_step: editCard.next_step,
+        due_date: editCard.due_date,
+      }),
+    })
     setCards(prev => prev.map(c => c.id === editCard.id ? { ...c, ...editCard } as GrowthCard : c))
     setExpandedId(null)
   }
 
   async function deleteCard(id: string) {
-    await supabase.from('growth_cards').delete().eq('id', id)
+    await fetch('/api/admin/growth/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
     setCards(prev => prev.filter(c => c.id !== id))
     if (expandedId === id) setExpandedId(null)
   }
 
   async function moveCard(id: string, newStatus: string) {
-    await supabase.from('growth_cards').update({ status: newStatus }).eq('id', id)
+    await fetch('/api/admin/growth/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, status: newStatus }),
+    })
     setCards(prev => prev.map(c => c.id === id ? { ...c, status: newStatus } : c))
   }
 

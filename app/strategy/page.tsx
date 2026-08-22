@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import PageHeader from '@/components/layout/PageHeader'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
@@ -54,7 +53,6 @@ export default function StrategyPage() {
   const [saving, setSaving] = useState(false)
   const [showNewForm, setShowNewForm] = useState(false)
   const [newQuestion, setNewQuestion] = useState('')
-  const supabase = createClient()
 
   const currentWeek = getWeekOf()
 
@@ -65,10 +63,11 @@ export default function StrategyPage() {
 
   async function fetchEntries() {
     setLoading(true)
-    const { data } = await supabase.from('strategy_answers').select('*').order('week_of', { ascending: false })
+    const res = await fetch('/api/admin/strategy')
+    const { entries: data } = await res.json()
     const fetched = data || []
     setEntries(fetched)
-    const thisWeek = fetched.find(e => e.week_of === currentWeek)
+    const thisWeek = fetched.find((e: StrategyAnswer) => e.week_of === currentWeek)
     if (thisWeek) {
       setCurrentEntry(thisWeek)
       setEditAnswer(thisWeek.answer || '')
@@ -80,22 +79,23 @@ export default function StrategyPage() {
   async function saveCurrentEntry() {
     if (!currentEntry) return
     setSaving(true)
-    await supabase.from('strategy_answers').update({
-      answer: editAnswer,
-      reflection: editReflection,
-    }).eq('id', currentEntry.id)
+    await fetch('/api/admin/strategy/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: currentEntry.id, answer: editAnswer, reflection: editReflection }),
+    })
     setEntries(prev => prev.map(e => e.id === currentEntry.id ? { ...e, answer: editAnswer, reflection: editReflection } : e))
     setSaving(false)
   }
 
   async function addQuestion() {
     if (!newQuestion.trim()) return
-    const { data } = await supabase.from('strategy_answers').insert({
-      question: newQuestion.trim(),
-      answer: '',
-      week_of: currentWeek,
-      reflection: '',
-    }).select().single()
+    const res = await fetch('/api/admin/strategy/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: newQuestion.trim(), week_of: currentWeek }),
+    })
+    const { entry: data } = await res.json()
     if (data) {
       setEntries(prev => [data, ...prev])
       setCurrentEntry(data)
@@ -108,7 +108,11 @@ export default function StrategyPage() {
 
   async function deleteEntry(id: string) {
     if (!confirm('Delete this strategy entry?')) return
-    await supabase.from('strategy_answers').delete().eq('id', id)
+    await fetch('/api/admin/strategy/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
     setEntries(prev => prev.filter(e => e.id !== id))
     if (currentEntry?.id === id) {
       setCurrentEntry(null)

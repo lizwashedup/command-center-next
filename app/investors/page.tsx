@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import PageHeader from '@/components/layout/PageHeader'
 import StatCard from '@/components/ui/StatCard'
 import Badge from '@/components/ui/Badge'
@@ -66,7 +65,6 @@ export default function InvestorsPage() {
   const [showModal, setShowModal] = useState(false)
   const [form, setForm] = useState({ ...emptyForm })
   const [saving, setSaving] = useState(false)
-  const supabase = createClient()
 
   useEffect(() => {
     fetchInvestors()
@@ -75,7 +73,8 @@ export default function InvestorsPage() {
 
   async function fetchInvestors() {
     setLoading(true)
-    const { data } = await supabase.from('investors').select('*').order('created_at', { ascending: false })
+    const res = await fetch('/api/admin/investors')
+    const { investors: data } = await res.json()
     setInvestors(data || [])
     setLoading(false)
   }
@@ -83,7 +82,12 @@ export default function InvestorsPage() {
   async function addInvestor() {
     if (!form.name.trim()) return
     setSaving(true)
-    const { data } = await supabase.from('investors').insert({ ...form }).select().single()
+    const res = await fetch('/api/admin/investors/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...form }),
+    })
+    const { investor: data } = await res.json()
     if (data) setInvestors(prev => [data, ...prev])
     setShowModal(false)
     setForm({ ...emptyForm })
@@ -92,19 +96,31 @@ export default function InvestorsPage() {
 
   async function deleteInvestor(id: string) {
     if (!confirm('Remove this investor from the CRM?')) return
-    await supabase.from('investors').delete().eq('id', id)
+    await fetch('/api/admin/investors/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
     setInvestors(prev => prev.filter(i => i.id !== id))
     if (expandedId === id) setExpandedId(null)
   }
 
   async function saveNotes(id: string) {
-    await supabase.from('investors').update({ notes: editNotes }).eq('id', id)
+    await fetch('/api/admin/investors/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, notes: editNotes }),
+    })
     setInvestors(prev => prev.map(i => i.id === id ? { ...i, notes: editNotes } : i))
     setExpandedId(null)
   }
 
   async function updateStage(id: string, stage: string) {
-    await supabase.from('investors').update({ stage }).eq('id', id)
+    await fetch('/api/admin/investors/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, stage }),
+    })
     setInvestors(prev => prev.map(i => i.id === id ? { ...i, stage } : i))
   }
 
