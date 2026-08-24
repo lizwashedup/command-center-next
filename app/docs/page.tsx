@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import PageHeader from '@/components/layout/PageHeader'
 import Button from '@/components/ui/Button'
 
@@ -53,7 +52,6 @@ export default function DocsPage() {
   const [showNewForm, setShowNewForm] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const supabase = createClient()
 
   useEffect(() => {
     fetchDocs()
@@ -62,7 +60,8 @@ export default function DocsPage() {
 
   async function fetchDocs() {
     setLoading(true)
-    const { data } = await supabase.from('documents').select('*').order('updated_at', { ascending: false })
+    const res = await fetch('/api/admin/documents')
+    const { documents: data } = await res.json()
     setDocs(data || [])
     setLoading(false)
   }
@@ -78,16 +77,15 @@ export default function DocsPage() {
     debounceRef.current = setTimeout(async () => {
       setSaving(true)
       const wc = countWords(content)
-      await supabase.from('documents').update({
-        title,
-        content,
-        word_count: wc,
-        updated_at: new Date().toISOString(),
-      }).eq('id', docId)
+      await fetch('/api/admin/documents/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: docId, title, content, word_count: wc }),
+      })
       setDocs(prev => prev.map(d => d.id === docId ? { ...d, title, content, word_count: wc, updated_at: new Date().toISOString() } : d))
       setSaving(false)
     }, 1000)
-  }, [supabase])
+  }, [])
 
   function handleTitleChange(val: string) {
     setEditTitle(val)
@@ -101,12 +99,12 @@ export default function DocsPage() {
 
   async function createDoc() {
     if (!newTitle.trim()) return
-    const { data } = await supabase.from('documents').insert({
-      title: newTitle.trim(),
-      folder: selectedFolder,
-      content: '',
-      word_count: 0,
-    }).select().single()
+    const res = await fetch('/api/admin/documents/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: newTitle.trim(), folder: selectedFolder }),
+    })
+    const { document: data } = await res.json()
     if (data) {
       setDocs(prev => [data, ...prev])
       openDocument(data)
@@ -117,7 +115,11 @@ export default function DocsPage() {
 
   async function deleteDoc(id: string) {
     if (!confirm('Delete this document?')) return
-    await supabase.from('documents').delete().eq('id', id)
+    await fetch('/api/admin/documents/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
     setDocs(prev => prev.filter(d => d.id !== id))
     if (openDoc?.id === id) setOpenDoc(null)
   }

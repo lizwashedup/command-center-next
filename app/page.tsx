@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import PageHeader from '@/components/layout/PageHeader'
 import StatCard from '@/components/ui/StatCard'
 import Card from '@/components/ui/Card'
@@ -56,7 +55,6 @@ export default function CommandCenterPage() {
   const [input, setInput] = useState('')
   const [category, setCategory] = useState('note')
   const [saving, setSaving] = useState(false)
-  const supabase = createClient()
 
   const today = new Date()
   const todayStr = today.toISOString().slice(0, 10)
@@ -69,11 +67,8 @@ export default function CommandCenterPage() {
 
   async function fetchCaptures() {
     setLoading(true)
-    const { data } = await supabase
-      .from('quick_captures')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(20)
+    const res = await fetch('/api/admin/captures')
+    const { captures: data } = await res.json()
     setCaptures(data || [])
     setLoading(false)
   }
@@ -82,14 +77,22 @@ export default function CommandCenterPage() {
     e.preventDefault()
     if (!input.trim()) return
     setSaving(true)
-    await supabase.from('quick_captures').insert({ content: input.trim(), category })
+    await fetch('/api/admin/captures/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: input.trim(), category }),
+    })
     setInput('')
     await fetchCaptures()
     setSaving(false)
   }
 
   async function handleDelete(id: string) {
-    await supabase.from('quick_captures').delete().eq('id', id)
+    await fetch('/api/admin/captures/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
     setCaptures(c => c.filter(x => x.id !== id))
   }
 

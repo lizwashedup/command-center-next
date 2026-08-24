@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import PageHeader from '@/components/layout/PageHeader'
 import StatCard from '@/components/ui/StatCard'
 import Card from '@/components/ui/Card'
@@ -65,7 +64,6 @@ export default function SystemsPage() {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ ...emptyForm })
   const [saving, setSaving] = useState(false)
-  const supabase = createClient()
 
   useEffect(() => {
     fetchTools()
@@ -74,7 +72,8 @@ export default function SystemsPage() {
 
   async function fetchTools() {
     setLoading(true)
-    const { data } = await supabase.from('tools').select('*').order('created_at', { ascending: false })
+    const res = await fetch('/api/admin/tools')
+    const { tools: data } = await res.json()
     setTools(data || [])
     setLoading(false)
   }
@@ -82,15 +81,19 @@ export default function SystemsPage() {
   async function addTool() {
     if (!form.name.trim()) return
     setSaving(true)
-    const { data } = await supabase.from('tools').insert({
-      name: form.name.trim(),
-      category: form.category,
-      cost: parseFloat(String(form.cost)) || 0,
-      billing: form.billing,
-      url: form.url.trim(),
-      notes: form.notes.trim(),
-      active: true,
-    }).select().single()
+    const res = await fetch('/api/admin/tools/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: form.name.trim(),
+        category: form.category,
+        cost: form.cost,
+        billing: form.billing,
+        url: form.url.trim(),
+        notes: form.notes.trim(),
+      }),
+    })
+    const { tool: data } = await res.json()
     if (data) setTools(prev => [data, ...prev])
     setForm({ ...emptyForm })
     setShowForm(false)
@@ -99,12 +102,20 @@ export default function SystemsPage() {
 
   async function deleteTool(id: string) {
     if (!confirm('Remove this tool?')) return
-    await supabase.from('tools').delete().eq('id', id)
+    await fetch('/api/admin/tools/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
     setTools(prev => prev.filter(t => t.id !== id))
   }
 
   async function toggleActive(id: string, current: boolean) {
-    await supabase.from('tools').update({ active: !current }).eq('id', id)
+    await fetch('/api/admin/tools/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, active: !current }),
+    })
     setTools(prev => prev.map(t => t.id === id ? { ...t, active: !current } : t))
   }
 
